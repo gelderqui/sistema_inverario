@@ -14,6 +14,8 @@ Route::prefix('auth')->group(function (): void {
     });
 });
 
+Route::middleware('guest')->get('/configuraciones/login', [ConfiguracionController::class, 'login']);
+
 // Protected application endpoints
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/configuraciones/publicas', [ConfiguracionController::class, 'publicas']);

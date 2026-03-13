@@ -82,9 +82,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import axios from '@/bootstrap';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
@@ -100,6 +101,15 @@ const form = ref({
 const errorMessages = ref([]);
 const showPassword = ref(false);
 const nombreSistema = ref('Sistema POS e Inventario');
+
+onMounted(async () => {
+    try {
+        const { data } = await axios.get('/configuraciones/login');
+        nombreSistema.value = data?.nombre_empresa ?? nombreSistema.value;
+    } catch {
+        // Usa valor por defecto si el endpoint no esta disponible.
+    }
+});
 
 async function submit() {
     errorMessages.value = [];

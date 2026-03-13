@@ -2,9 +2,7 @@
     <div v-if="showShell" class="d-flex min-vh-100">
         <aside class="bg-dark text-white p-3" style="width: 280px;">
             <div class="mb-4">
-                <p class="text-uppercase small text-white-50 mb-2">Sistema POS</p>
-                <h1 class="h4 mb-1">Panel Operativo</h1>
-                <p class="small text-white-50 mb-0">Laravel + Vue + CoreUI</p>
+                <h1 class="h5 mb-0">{{ nombreSistema }}</h1>
             </div>
 
             <nav class="nav nav-pills flex-column gap-2">
@@ -51,19 +49,39 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import axios from '@/bootstrap';
 import { useAuthStore } from '@/stores/auth';
 import { navigationItems } from '@/utils/navigation';
 
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+const nombreSistema = ref('Sistema POS e Inventario');
+const configuracionCargada = ref(false);
 
 const showShell = computed(() => authStore.isAuthenticated && route.name !== 'login');
 
 const visibleNavigationItems = computed(() => navigationItems.filter((item) => authStore.hasAnyPermission(item.permissions)));
+
+watch(
+    showShell,
+    async (isVisible) => {
+        if (!isVisible || configuracionCargada.value) {
+            return;
+        }
+
+        try {
+            const { data } = await axios.get('/configuraciones/publicas');
+            nombreSistema.value = data?.nombre_empresa ?? nombreSistema.value;
+            configuracionCargada.value = true;
+        } catch {
+            // Usa valor por defecto si falla la carga de configuraciones.
+        }
+    }
+);
 
 async function logout() {
     await authStore.logout();

@@ -1,34 +1,3 @@
-<script setup>
-import { computed } from 'vue';
-
-import { useAuthStore } from '@/stores/auth';
-
-const authStore = useAuthStore();
-
-const modules = computed(() => [
-    {
-        title: 'Inventario',
-        description: 'Productos, existencias, ajustes y kardex.',
-        enabled: authStore.hasAnyPermission(['inventory.view']),
-    },
-    {
-        title: 'Compras',
-        description: 'Proveedores, órdenes e ingresos de stock.',
-        enabled: authStore.hasAnyPermission(['purchases.view']),
-    },
-    {
-        title: 'POS',
-        description: 'Caja, ventas rápidas y recibos.',
-        enabled: authStore.hasAnyPermission(['pos.access']),
-    },
-    {
-        title: 'Reportes',
-        description: 'Exportación a Excel y salidas PDF.',
-        enabled: authStore.hasAnyPermission(['reports.view']),
-    },
-]);
-</script>
-
 <template>
     <section class="d-grid gap-4">
         <div class="card border-0 shadow-sm">
@@ -86,3 +55,33 @@ const modules = computed(() => [
         </div>
     </section>
 </template>
+<script setup>
+import { computed } from 'vue';
+
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
+
+const modules = computed(() => [
+    {
+        title: 'Inventario',
+        description: 'Productos, existencias, ajustes y kardex.',
+        enabled: authStore.hasAnyPermission(['inventory.view']),
+    },
+    {
+        title: 'Compras',
+        description: 'Proveedores, órdenes e ingresos de stock.',
+        enabled: authStore.hasAnyPermission(['purchases.view']),
+    },
+    {
+        title: 'POS',
+        description: 'Caja, ventas rápidas y recibos.',
+        enabled: authStore.hasAnyPermission(['pos.access']),
+    },
+    {
+        title: 'Reportes',
+        description: 'Exportación a Excel y salidas PDF.',
+        enabled: authStore.hasAnyPermission(['reports.view']),
+    },
+]);
+</script>

@@ -7,6 +7,13 @@ use Illuminate\Http\JsonResponse;
 
 class ConfiguracionController extends Controller
 {
+    public function login(): JsonResponse
+    {
+        return response()->json([
+            'nombre_empresa' => Configuracion::valor('nombre_empresa', config('app.name', 'Sistema POS e Inventario')),
+        ]);
+    }
+
     public function publicas(): JsonResponse
     {
         return response()->json([
