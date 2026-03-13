@@ -26,7 +26,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($credentials, (bool) ($validated['remember'] ?? false))) {
             throw ValidationException::withMessages([
-                'username' => __('The provided credentials are incorrect or the user is inactive.'),
+                'username' => __('auth.failed'),
             ]);
         }
 

@@ -1,9 +1,8 @@
 <template>
-    <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light px-3 py-5">
-        <div class="w-100" style="max-width: 440px;">
-            <div class="card border-0 shadow-lg rounded-4">
+    <div class="d-flex justify-content-center bg-white px-3 py-4">
+        <div style="width: min(100%, 380px);">
+            <div class="card border-0 rounded-4" style="box-shadow: none;">
                 <div class="card-body p-4 p-sm-5">
-
                     <div class="text-center mb-4">
                         <div class="bg-dark text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:56px;height:56px;">
                             <FontAwesomeIcon icon="fa-solid fa-store" size="lg" />
@@ -11,9 +10,11 @@
                         <h1 class="h4 fw-bold mb-1">{{ nombreSistema }}</h1>
                     </div>
 
-                    <div v-if="errorMessage" class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" />
-                        <span>{{ errorMessage }}</span>
+                    <div v-if="errorMessages.length" class="alert alert-danger d-flex gap-2" role="alert">
+                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="mt-1" />
+                        <ul class="mb-0 ps-3">
+                            <li v-for="(message, index) in errorMessages" :key="`${index}-${message}`">{{ message }}</li>
+                        </ul>
                     </div>
 
                     <form class="d-grid gap-3" novalidate @submit.prevent="submit">
@@ -81,10 +82,9 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import axios from '@/bootstrap';
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
@@ -97,30 +97,30 @@ const form = ref({
     remember: false,
 });
 
-const errorMessage = ref('');
+const errorMessages = ref([]);
 const showPassword = ref(false);
 const nombreSistema = ref('Sistema POS e Inventario');
 
-onMounted(async () => {
-    try {
-        const { data } = await axios.get('/configuraciones/publicas');
-        nombreSistema.value = data?.nombre_empresa ?? nombreSistema.value;
-    } catch {
-        // Usa el nombre de respaldo cuando las configuraciones aún no están disponibles.
-    }
-});
-
 async function submit() {
-    errorMessage.value = '';
+    errorMessages.value = [];
 
     try {
         await authStore.login(form.value);
         await router.push(route.query.redirect ?? { name: 'dashboard' });
     } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ??
-            error.response?.data?.errors?.username?.[0] ??
-            'No fue posible iniciar sesión.';
+        const serverErrors = error.response?.data?.errors;
+
+        if (serverErrors && typeof serverErrors === 'object') {
+            errorMessages.value = Object.values(serverErrors)
+                .flat()
+                .filter((message) => typeof message === 'string' && message.trim() !== '');
+        }
+
+        if (!errorMessages.value.length) {
+            errorMessages.value = [
+                error.response?.data?.message ?? 'No fue posible iniciar sesión.',
+            ];
+        }
     }
 }
 </script>

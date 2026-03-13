@@ -1,24 +1,3 @@
-<script setup>
-import { computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-
-import { useAuthStore } from '@/stores/auth';
-import { navigationItems } from '@/utils/navigation';
-
-const authStore = useAuthStore();
-const route = useRoute();
-const router = useRouter();
-
-const showShell = computed(() => authStore.isAuthenticated && route.name !== 'login');
-
-const visibleNavigationItems = computed(() => navigationItems.filter((item) => authStore.hasAnyPermission(item.permissions)));
-
-async function logout() {
-    await authStore.logout();
-    await router.push({ name: 'login' });
-}
-</script>
-
 <template>
     <div v-if="showShell" class="d-flex min-vh-100">
         <aside class="bg-dark text-white p-3" style="width: 280px;">
@@ -70,3 +49,24 @@ async function logout() {
         </div>
     </main>
 </template>
+
+<script setup>
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+import { useAuthStore } from '@/stores/auth';
+import { navigationItems } from '@/utils/navigation';
+
+const authStore = useAuthStore();
+const route = useRoute();
+const router = useRouter();
+
+const showShell = computed(() => authStore.isAuthenticated && route.name !== 'login');
+
+const visibleNavigationItems = computed(() => navigationItems.filter((item) => authStore.hasAnyPermission(item.permissions)));
+
+async function logout() {
+    await authStore.logout();
+    await router.push({ name: 'login' });
+}
+</script>

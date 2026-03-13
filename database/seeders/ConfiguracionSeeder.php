@@ -22,6 +22,12 @@ class ConfiguracionSeeder extends Seeder
                 'value' => '120',
                 'activo' => true,
             ],
+            [
+                'codigo' => 'locale',
+                'descripcion' => 'Idioma de la aplicacion (es o en).',
+                'value' => config('app.locale', 'es'),
+                'activo' => true,
+            ],
         ];
 
         foreach ($items as $item) {
