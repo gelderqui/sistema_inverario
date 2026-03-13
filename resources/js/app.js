@@ -13,7 +13,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 
 import AppLayout from './layouts/AppLayout.vue';
-import router from './router';
+import router from './router.js';
 
 library.add(fab, far, fas);
 

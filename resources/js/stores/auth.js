@@ -36,7 +36,7 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async fetchUser() {
-            const { data } = await axios.get('/api/auth/me');
+            const { data } = await axios.get('/auth/me');
             this.user = data.data ?? data;
 
             return this.user;
@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', {
 
             try {
                 await this.fetchCsrfCookie();
-                const { data } = await axios.post('/api/auth/login', credentials);
+                const { data } = await axios.post('/auth/login', credentials);
                 this.user = data.user?.data ?? data.user;
                 this.initialized = true;
 
@@ -58,7 +58,7 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async logout() {
-            await axios.post('/api/auth/logout');
+            await axios.post('/auth/logout');
             this.user = null;
         },
 

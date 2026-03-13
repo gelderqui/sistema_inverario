@@ -15,7 +15,15 @@ class Permission extends Model
         'code',
         'module',
         'description',
+        'activo',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'activo' => 'bool',
+        ];
+    }
 
     public function roles(): BelongsToMany
     {

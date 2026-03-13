@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('description')->nullable();
             $table->boolean('is_system')->default(false);
+            $table->boolean('activo')->default(true);
             $table->timestamps();
 
             $table->unique(['name']);
@@ -25,6 +26,7 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('module')->nullable();
             $table->string('description')->nullable();
+            $table->boolean('activo')->default(true);
             $table->timestamps();
 
             $table->unique(['name']);

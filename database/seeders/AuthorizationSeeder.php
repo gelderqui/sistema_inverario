@@ -35,7 +35,10 @@ class AuthorizationSeeder extends Seeder
         foreach ($permissions as $permissionData) {
             Permission::query()->updateOrCreate(
                 ['code' => $permissionData['code']],
-                $permissionData
+                [
+                    ...$permissionData,
+                    'activo' => true,
+                ]
             );
         }
 
@@ -97,6 +100,7 @@ class AuthorizationSeeder extends Seeder
                     'name' => $roleData['name'],
                     'description' => $roleData['description'],
                     'is_system' => true,
+                    'activo' => true,
                 ]
             );
 
@@ -108,9 +112,12 @@ class AuthorizationSeeder extends Seeder
         }
 
         $adminUser = User::query()->updateOrCreate(
-            ['email' => 'admin@pos.local'],
+            ['email' => 'admin@admin.local'],
             [
+                'username' => 'admin',
                 'name' => 'Administrador General',
+                'telefono' => null,
+                'activo' => true,
                 'password' => Hash::make('password'),
             ]
         );

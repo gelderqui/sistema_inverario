@@ -15,12 +15,14 @@ class Role extends Model
         'code',
         'description',
         'is_system',
+        'activo',
     ];
 
     protected function casts(): array
     {
         return [
             'is_system' => 'bool',
+            'activo' => 'bool',
         ];
     }
 

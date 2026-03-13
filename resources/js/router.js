@@ -41,11 +41,11 @@ const router = createRouter({
 router.beforeEach(async (to) => {
     const authStore = useAuthStore();
 
-    if (! authStore.initialized) {
+    if (!authStore.initialized) {
         await authStore.initialize();
     }
 
-    if (to.meta.requiresAuth && ! authStore.isAuthenticated) {
+    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
         return {
             name: 'login',
             query: { redirect: to.fullPath },
@@ -56,7 +56,7 @@ router.beforeEach(async (to) => {
         return { name: 'dashboard' };
     }
 
-    if (to.meta.permissions && ! authStore.hasAnyPermission(to.meta.permissions)) {
+    if (to.meta.permissions && !authStore.hasAnyPermission(to.meta.permissions)) {
         return { name: 'unauthorized' };
     }
 
