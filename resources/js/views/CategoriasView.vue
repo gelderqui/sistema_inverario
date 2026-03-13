@@ -3,7 +3,7 @@
         <!-- Encabezado -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h4 mb-0">Categorías</h2>
-            <button class="btn btn-dark" @click="openCreate">
+            <button class="btn btn-brand" @click="openCreate">
                 <FontAwesomeIcon icon="fa-solid fa-plus" class="me-2" />
                 Nueva
             </button>
@@ -17,7 +17,7 @@
         <div v-else class="card border-0 shadow-sm">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    <thead class="thead-brand">
                         <tr>
                             <th>Nombre</th>
                             <th>Descripcion</th>
@@ -49,26 +49,28 @@
                             <td>
                                 <div class="d-flex gap-1">
                                     <button
-                                        class="btn btn-sm btn-outline-secondary"
+                                        class="btn btn-sm btn-action-brand"
                                         title="Editar"
                                         @click="openEdit(cat)"
                                     >
-                                        <FontAwesomeIcon icon="fa-solid fa-pencil" />
+                                        <FontAwesomeIcon icon="fa-solid fa-pencil" class="icon-action-edit" />
                                     </button>
                                     <button
-                                        class="btn btn-sm"
-                                        :class="cat.activo ? 'btn-outline-warning' : 'btn-outline-success'"
+                                        class="btn btn-sm btn-action-brand"
                                         :title="cat.activo ? 'Desactivar' : 'Activar'"
                                         @click="openToggle(cat)"
                                     >
-                                        <FontAwesomeIcon :icon="cat.activo ? 'fa-solid fa-ban' : 'fa-solid fa-check'" />
+                                        <FontAwesomeIcon
+                                            :icon="cat.activo ? 'fa-solid fa-ban' : 'fa-solid fa-check'"
+                                            :class="cat.activo ? 'icon-action-disable' : 'icon-action-enable'"
+                                        />
                                     </button>
                                     <button
-                                        class="btn btn-sm btn-outline-danger"
+                                        class="btn btn-sm btn-action-brand"
                                         title="Eliminar"
                                         @click="openDelete(cat)"
                                     >
-                                        <FontAwesomeIcon icon="fa-solid fa-trash" />
+                                        <FontAwesomeIcon icon="fa-solid fa-trash" class="icon-action-delete" />
                                     </button>
                                 </div>
                             </td>
@@ -82,7 +84,7 @@
         <div ref="formModalRef" class="modal fade" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header modal-header-brand">
                         <h5 class="modal-title">
                             <FontAwesomeIcon :icon="editingId ? 'fa-solid fa-pen-to-square' : 'fa-solid fa-plus'" class="me-2" />
                             {{ editingId ? 'Editar categoría' : 'Nueva categoría' }}
@@ -132,8 +134,8 @@
                         </div>
 
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-dark" :disabled="saving">
+                            <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-brand" :disabled="saving">
                                 <span v-if="saving" class="spinner-border spinner-border-sm me-2" aria-hidden="true" />
                                 <FontAwesomeIcon v-else icon="fa-solid fa-floppy-disk" class="me-2" />
                                 Guardar
@@ -146,9 +148,9 @@
 
         <!-- Modal activar / desactivar -->
         <div ref="toggleModalRef" class="modal fade" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
+            <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header modal-header-brand">
                         <h5 class="modal-title">
                             <FontAwesomeIcon
                                 :icon="selected?.activo ? 'fa-solid fa-ban' : 'fa-solid fa-check'"
@@ -165,11 +167,10 @@
                         </p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
                         <button
                             type="button"
-                            class="btn"
-                            :class="selected?.activo ? 'btn-warning' : 'btn-success'"
+                            class="btn btn-brand"
                             :disabled="toggling"
                             @click="confirmToggle"
                         >
@@ -183,10 +184,10 @@
 
         <!-- Modal eliminar -->
         <div ref="deleteModalRef" class="modal fade" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
+            <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title text-danger">
+                    <div class="modal-header modal-header-brand">
+                        <h5 class="modal-title">
                             <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="me-2" />
                             Eliminar categoría
                         </h5>
@@ -203,10 +204,10 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
                         <button
                             type="button"
-                            class="btn btn-danger"
+                            class="btn btn-brand"
                             :disabled="deleting"
                             @click="confirmDelete"
                         >

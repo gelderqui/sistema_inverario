@@ -19,3 +19,6 @@ body {
 #app {
     min-height: 100vh;
 }
+
+/* Estilos de componentes (botones, modales, tablas, sidebar) */
+@import './components.css';

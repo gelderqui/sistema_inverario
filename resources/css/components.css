@@ -1,0 +1,120 @@
+/* =============================================================
+   Variables de color brand
+   ============================================================= */
+:root {
+    --brand:       #1a3a6c;
+    --brand-hover: #152f58;
+}
+
+/* =============================================================
+   Botones — fondo azul oscuro, texto/iconos blancos
+   Aplica tanto a .btn-brand como a .btn-outline-brand para
+   que todos los botones tengan el mismo estilo sólido.
+   ============================================================= */
+.btn-brand,
+.btn-outline-brand {
+    background-color: var(--brand) !important;
+    border-color: var(--brand) !important;
+    color: #fff !important;
+}
+
+.btn-brand:hover,
+.btn-brand:focus,
+.btn-brand:active,
+.btn-outline-brand:hover,
+.btn-outline-brand:focus,
+.btn-outline-brand:active {
+    background-color: var(--brand-hover) !important;
+    border-color: var(--brand-hover) !important;
+    color: #fff !important;
+}
+
+.btn-brand:disabled,
+.btn-brand.disabled,
+.btn-outline-brand:disabled,
+.btn-outline-brand.disabled {
+    background-color: var(--brand) !important;
+    border-color: var(--brand) !important;
+    color: #fff !important;
+    opacity: 0.65;
+}
+
+/* =============================================================
+   Botones de accion en tablas
+   Fondo azul oscuro + icono por semantica
+   ============================================================= */
+.btn-action-brand {
+    background-color: var(--brand) !important;
+    border-color: var(--brand) !important;
+    color: #fff !important;
+}
+
+.btn-action-brand:hover,
+.btn-action-brand:focus,
+.btn-action-brand:active {
+    background-color: var(--brand-hover) !important;
+    border-color: var(--brand-hover) !important;
+    color: #fff !important;
+}
+
+.icon-action-edit {
+    color: #ffffff !important;
+}
+
+.icon-action-enable {
+    color: #ffffff !important;
+}
+
+.icon-action-disable {
+    color: #ffffff !important;
+}
+
+.icon-action-delete {
+    color: #ffffff !important;
+}
+
+/* =============================================================
+   Encabezados de modal — fondo azul oscuro, texto blanco
+   ============================================================= */
+.modal-header-brand {
+    background-color: var(--brand);
+    color: #fff;
+}
+
+.modal-header-brand .modal-title {
+    color: #fff !important;
+}
+
+.modal-header-brand .btn-close {
+    filter: invert(1) brightness(2);
+}
+
+/* =============================================================
+   Encabezados de tabla — fondo azul oscuro, texto blanco
+   ============================================================= */
+.thead-brand th {
+    background-color: var(--brand) !important;
+    color: #fff !important;
+    border-color: var(--brand) !important;
+}
+
+.sidebar-brand {
+    background-color: var(--brand) !important;
+}
+
+/* =============================================================
+   Sidebar — botón de grupo con hijos (nav colapsable)
+   ============================================================= */
+.nav-group-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.15s;
+}
+
+.nav-group-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}

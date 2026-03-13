@@ -2,7 +2,7 @@
     <div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h4 mb-0">Usuarios</h2>
-            <button class="btn btn-dark" @click="openCreate">
+            <button class="btn btn-brand" @click="openCreate">
                 <FontAwesomeIcon icon="fa-solid fa-plus" class="me-2" />
                 Nuevo
             </button>
@@ -15,7 +15,7 @@
         <div v-else class="card border-0 shadow-sm">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    <thead class="thead-brand">
                         <tr>
                             <th>Usuario</th>
                             <th>Nombre</th>
@@ -51,8 +51,8 @@
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-secondary" @click="openEdit(user)">
-                                    <FontAwesomeIcon icon="fa-solid fa-pencil" />
+                                <button class="btn btn-sm btn-action-brand" @click="openEdit(user)">
+                                    <FontAwesomeIcon icon="fa-solid fa-pencil" class="icon-action-edit" />
                                 </button>
                             </td>
                         </tr>
@@ -65,7 +65,7 @@
         <div ref="modalRef" class="modal fade" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header modal-header-brand">
                         <h5 class="modal-title">
                             <FontAwesomeIcon :icon="editingId ? 'fa-solid fa-user-pen' : 'fa-solid fa-user-plus'" class="me-2" />
                             {{ editingId ? 'Editar usuario' : 'Nuevo usuario' }}
@@ -177,8 +177,8 @@
                         </div>
 
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-dark" :disabled="saving">
+                            <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-brand" :disabled="saving">
                                 <span v-if="saving" class="spinner-border spinner-border-sm me-2" aria-hidden="true" />
                                 <FontAwesomeIcon v-else icon="fa-solid fa-floppy-disk" class="me-2" />
                                 Guardar

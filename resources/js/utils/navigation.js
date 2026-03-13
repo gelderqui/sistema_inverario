@@ -6,11 +6,24 @@ export const navigationItems = [
         permissions: ['dashboard.view'],
     },
     {
-        name: 'inventory',
-        label: 'Inventario',
+        name: 'productos-grupo',
+        label: 'Productos',
         icon: 'fa-solid fa-boxes-stacked',
-        permissions: ['inventory.view'],
-        disabled: true,
+        permissions: ['inventory.manage'],
+        children: [
+            {
+                name: 'categorias',
+                label: 'Categorias',
+                icon: 'fa-solid fa-tags',
+                permissions: ['inventory.manage'],
+            },
+            {
+                name: 'productos',
+                label: 'Productos',
+                icon: 'fa-solid fa-box',
+                permissions: ['inventory.manage'],
+            },
+        ],
     },
     {
         name: 'purchases',
@@ -32,18 +45,6 @@ export const navigationItems = [
         icon: 'fa-solid fa-file-export',
         permissions: ['reports.view'],
         disabled: true,
-    },
-    {
-        name: 'categorias',
-        label: 'Categorias',
-        icon: 'fa-solid fa-tags',
-        permissions: ['inventory.manage'],
-    },
-    {
-        name: 'productos',
-        label: 'Productos',
-        icon: 'fa-solid fa-box',
-        permissions: ['inventory.manage'],
     },
     {
         name: 'users',
