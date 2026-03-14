@@ -37,8 +37,8 @@ Route::prefix('api')->group(function (): void {
             ]);
         });
 
-        Route::prefix('admin')->group(function (): void {
-            Route::prefix('users')->group(function (): void {
+        Route::prefix('configuracion')->group(function (): void {
+            Route::prefix('usuarios')->group(function (): void {
                 Route::get('/get', [UserManagementController::class, 'index']);
                 Route::post('/store', [UserManagementController::class, 'store']);
                 Route::put('/update/{user}', [UserManagementController::class, 'update']);
@@ -49,9 +49,17 @@ Route::prefix('api')->group(function (): void {
                 Route::get('/get', [RoleManagementController::class, 'index']);
                 Route::post('/store', [RoleManagementController::class, 'store']);
                 Route::put('/update/{role}', [RoleManagementController::class, 'update']);
+                Route::delete('/destroy/{role}', [RoleManagementController::class, 'destroy']);
             });
 
             Route::get('/permissions/get', [PermissionCatalogController::class, 'index']);
+
+            Route::prefix('configuraciones')->group(function (): void {
+                Route::get('/get', [ConfiguracionController::class, 'index']);
+                Route::put('/update/{configuracion}', [ConfiguracionController::class, 'update']);
+                Route::patch('/toggle/{configuracion}', [ConfiguracionController::class, 'toggle']);
+                Route::delete('/destroy/{configuracion}', [ConfiguracionController::class, 'destroy']);
+            });
         });
 
         Route::prefix('catalogos')->group(function (): void {

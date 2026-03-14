@@ -39,6 +39,16 @@ class AuthController extends Controller
 
         $user = $request->user()->load(['role.permissions']);
 
+        if (! $user->role || ! $user->role->activo) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'username' => 'Tu usuario no puede iniciar sesion porque su rol esta inactivo o no asignado.',
+            ]);
+        }
+
         return response()->json([
             'message' => 'Authenticated successfully.',
             'user' => new AuthenticatedUserResource($user),

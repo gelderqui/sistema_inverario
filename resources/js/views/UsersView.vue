@@ -210,7 +210,7 @@ async function loadUsers() {
     loading.value = true;
 
     try {
-        const { data } = await axios.get('/admin/users/get');
+        const { data } = await axios.get('/configuracion/usuarios/get');
         users.value = data.data;
     } finally {
         loading.value = false;
@@ -218,7 +218,7 @@ async function loadUsers() {
 }
 
 async function loadCatalogs() {
-    const { data } = await axios.get('/admin/users/get/catalogs');
+    const { data } = await axios.get('/configuracion/usuarios/get/catalogs');
     catalogs.value = data;
 }
 
@@ -250,13 +250,13 @@ async function save() {
 
     try {
         if (editingId.value) {
-            const { data } = await axios.put(`/admin/users/update/${editingId.value}`, form.value);
+            const { data } = await axios.put(`/configuracion/usuarios/update/${editingId.value}`, form.value);
             const index = users.value.findIndex((u) => u.id === editingId.value);
             if (index !== -1) {
                 users.value[index] = data.data;
             }
         } else {
-            const { data } = await axios.post('/admin/users/store', form.value);
+            const { data } = await axios.post('/configuracion/usuarios/store', form.value);
             users.value.push(data.data);
         }
 

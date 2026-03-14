@@ -64,6 +64,12 @@ class UserManagementController extends Controller
 
     public function update(Request $request, User $user): JsonResponse
     {
+        if (($user->username === 'admin' || $user->email === 'admin@admin.local') && ! $request->boolean('activo')) {
+            return response()->json([
+                'message' => 'El usuario admin no se puede desactivar.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'username' => [
                 'required',

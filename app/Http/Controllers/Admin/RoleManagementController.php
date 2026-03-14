@@ -14,6 +14,7 @@ class RoleManagementController extends Controller
     {
         $roles = Role::query()
             ->with(['permissions:id,name,code,module'])
+            ->withCount('users')
             ->orderBy('name')
             ->get([
                 'id',
@@ -60,6 +61,12 @@ class RoleManagementController extends Controller
 
     public function update(Request $request, Role $role): JsonResponse
     {
+        if ($role->code === 'admin' && ! $request->boolean('activo')) {
+            return response()->json([
+                'message' => 'El rol admin no se puede desactivar.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'name' => [
                 'required',
@@ -93,6 +100,27 @@ class RoleManagementController extends Controller
         return response()->json([
             'message' => 'Rol actualizado correctamente.',
             'data' => $role,
+        ]);
+    }
+
+    public function destroy(Role $role): JsonResponse
+    {
+        if ($role->code === 'admin') {
+            return response()->json([
+                'message' => 'El rol admin no se puede eliminar.',
+            ], 422);
+        }
+
+        if ($role->users()->exists()) {
+            return response()->json([
+                'message' => 'No se puede eliminar el rol porque tiene usuarios asignados.',
+            ], 422);
+        }
+
+        $role->delete();
+
+        return response()->json([
+            'message' => 'Rol eliminado correctamente.',
         ]);
     }
 }

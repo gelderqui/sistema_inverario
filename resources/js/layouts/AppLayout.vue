@@ -231,28 +231,36 @@ const menuItems = computed(() => {
     const perms = [...(authStore.user?.permissions ?? [])]
         .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
 
-    const catalogoItems = perms.filter((p) => p.module === 'catalogos');
-    const topLevel = perms.filter((p) => p.module !== 'catalogos');
+    const groupedModules = [
+        { module: 'catalogos', name: 'catalogos', label: 'Catalogo', icon: 'fa-solid fa-boxes-stacked' },
+        { module: 'configuracion', name: 'configuracion', label: 'Configuracion', icon: 'fa-solid fa-gears' },
+    ];
 
-    if (catalogoItems.length === 0) {
-        return topLevel;
-    }
-
-    const catalogMinOrden = Math.min(...catalogoItems.map((p) => p.orden ?? 999));
-    const insertAt = topLevel.findIndex((p) => (p.orden ?? 999) > catalogMinOrden);
-    const catalogGroup = {
-        name: 'catalogos',
-        label: 'Catalogo',
-        icon: 'fa-solid fa-boxes-stacked',
-        children: catalogoItems,
-    };
-
-    if (insertAt === -1) {
-        return [...topLevel, catalogGroup];
-    }
-
+    const groupedSet = new Set(groupedModules.map((g) => g.module));
+    const topLevel = perms.filter((p) => !groupedSet.has(p.module));
     const result = [...topLevel];
-    result.splice(insertAt, 0, catalogGroup);
+
+    for (const groupDef of groupedModules) {
+        const children = perms.filter((p) => p.module === groupDef.module);
+        if (!children.length) continue;
+
+        const group = {
+            name: groupDef.name,
+            label: groupDef.label,
+            icon: groupDef.icon,
+            children,
+        };
+
+        const minOrden = Math.min(...children.map((p) => p.orden ?? 999));
+        const insertAt = result.findIndex((p) => (p.orden ?? 999) > minOrden);
+
+        if (insertAt === -1) {
+            result.push(group);
+        } else {
+            result.splice(insertAt, 0, group);
+        }
+    }
+
     return result;
 });
 

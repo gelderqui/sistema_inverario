@@ -20,8 +20,9 @@ class AuthorizationSeeder extends Seeder
             ['name' => 'Clientes',     'code' => 'cliente',    'module' => 'catalogos',  'ruta' => '/cliente',    'icono' => 'fa-solid fa-address-card',   'orden' => 6],
             ['name' => 'Compras',      'code' => 'compras',    'module' => 'compras',    'ruta' => '/compras',    'icono' => 'fa-solid fa-truck-ramp-box', 'orden' => 7],
             ['name' => 'Inventario',   'code' => 'inventario', 'module' => 'inventario', 'ruta' => '/inventario', 'icono' => 'fa-solid fa-warehouse',      'orden' => 8],
-            ['name' => 'Usuarios',     'code' => 'users',      'module' => 'admin',      'ruta' => '/usuarios',   'icono' => 'fa-solid fa-users',          'orden' => 9],
-            ['name' => 'Roles',        'code' => 'roles',      'module' => 'admin',      'ruta' => '/roles',      'icono' => 'fa-solid fa-user-shield',    'orden' => 10],
+            ['name' => 'Usuarios',     'code' => 'users',      'module' => 'configuracion', 'ruta' => '/configuracion/usuarios',       'icono' => 'fa-solid fa-users',       'orden' => 20],
+            ['name' => 'Roles',        'code' => 'roles',      'module' => 'configuracion', 'ruta' => '/configuracion/roles',          'icono' => 'fa-solid fa-user-shield', 'orden' => 21],
+            ['name' => 'Configuraciones', 'code' => 'configuraciones', 'module' => 'configuracion', 'ruta' => '/configuracion/configuraciones', 'icono' => 'fa-solid fa-sliders', 'orden' => 22],
         ];
 
         foreach ($permissions as $permissionData) {
@@ -42,7 +43,7 @@ class AuthorizationSeeder extends Seeder
             ],
             'operador' => [
                 'name' => 'Operador',
-                'description' => 'Operacion general con acceso amplio.',
+                'description' => 'Acceso general excepto configuracion y reportes.',
                 'permissions' => [
                     'dashboard',
                     'categorias',
@@ -64,6 +65,18 @@ class AuthorizationSeeder extends Seeder
                     'cliente',
                     'compras',
                     'inventario',
+                ],
+            ],
+            'vendedor' => [
+                'name' => 'Vendedor',
+                'description' => 'Acceso a catalogo y compras.',
+                'permissions' => [
+                    'dashboard',
+                    'categorias',
+                    'proveedores',
+                    'productos',
+                    'cliente',
+                    'compras',
                 ],
             ],
             'cajero' => [

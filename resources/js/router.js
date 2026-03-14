@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import CategoriasView from '@/views/CategoriasView.vue';
 import ClientesView from '@/views/ClientesView.vue';
 import ComprasView from '@/views/ComprasView.vue';
+import ConfiguracionesView from '@/views/ConfiguracionesView.vue';
 import DashboardView from '@/views/DashboardView.vue';
 import InventarioView from '@/views/InventarioView.vue';
 import LoginView from '@/views/LoginView.vue';
@@ -15,8 +16,9 @@ import UsersView from '@/views/UsersView.vue';
 
 const permissionByPath = [
     { pattern: /^\/$/, permission: 'dashboard' },
-    { pattern: /^\/usuarios(\/|$)/, permission: 'users' },
-    { pattern: /^\/roles(\/|$)/, permission: 'roles' },
+    { pattern: /^\/configuracion\/usuarios(\/|$)/, permission: 'users' },
+    { pattern: /^\/configuracion\/roles(\/|$)/, permission: 'roles' },
+    { pattern: /^\/configuracion\/configuraciones(\/|$)/, permission: 'configuraciones' },
     { pattern: /^\/categorias(\/|$)/, permission: 'categorias' },
     { pattern: /^\/cliente(\/|$)/, permission: 'cliente' },
     { pattern: /^\/productos(\/|$)/, permission: 'productos' },
@@ -49,17 +51,25 @@ const routes = [
         },
     },
     {
-        path: '/usuarios',
-        name: 'users',
+        path: '/configuracion/usuarios',
+        name: 'config-users',
         component: UsersView,
         meta: {
             requiresAuth: true,
         },
     },
     {
-        path: '/roles',
-        name: 'roles',
+        path: '/configuracion/roles',
+        name: 'config-roles',
         component: RolesView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/configuracion/configuraciones',
+        name: 'config-configuraciones',
+        component: ConfiguracionesView,
         meta: {
             requiresAuth: true,
         },

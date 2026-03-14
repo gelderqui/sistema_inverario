@@ -21,13 +21,14 @@
                             <th>Codigo</th>
                             <th>Descripcion</th>
                             <th>Permisos</th>
+                            <th>Usuarios</th>
                             <th>Estado</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="!roles.length">
-                            <td colspan="6" class="text-center text-body-secondary py-4">Sin registros</td>
+                            <td colspan="7" class="text-center text-body-secondary py-4">Sin registros</td>
                         </tr>
                         <tr v-for="role in roles" :key="role.id">
                             <td class="fw-semibold">{{ role.name }}</td>
@@ -39,19 +40,33 @@
                                 </span>
                             </td>
                             <td>
+                                <span class="badge text-bg-light border">
+                                    {{ role.users_count ?? 0 }} usuarios
+                                </span>
+                            </td>
+                            <td>
                                 <span class="badge" :class="role.activo ? 'text-bg-success' : 'text-bg-secondary'">
                                     {{ role.activo ? 'Activo' : 'Inactivo' }}
                                 </span>
                             </td>
                             <td>
-                                <button
-                                    class="btn btn-sm btn-action-brand"
-                                    :disabled="role.is_system"
-                                    :title="role.is_system ? 'Rol de sistema, no editable' : 'Editar'"
-                                    @click="!role.is_system && openEdit(role)"
-                                >
-                                    <FontAwesomeIcon icon="fa-solid fa-pencil" class="icon-action-edit" />
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button
+                                        class="btn btn-sm btn-action-brand"
+                                        title="Editar"
+                                        @click="openEdit(role)"
+                                    >
+                                        <FontAwesomeIcon icon="fa-solid fa-pencil" class="icon-action-edit" />
+                                    </button>
+                                    <button
+                                        class="btn btn-sm btn-action-brand"
+                                        :disabled="role.code === 'admin'"
+                                        :title="role.code === 'admin' ? 'El rol admin no se puede eliminar' : 'Eliminar'"
+                                        @click="role.code !== 'admin' && openDelete(role)"
+                                    >
+                                        <FontAwesomeIcon icon="fa-solid fa-trash" class="icon-action-delete" />
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -176,6 +191,24 @@
                 </div>
             </div>
         </div>
+
+        <div ref="deleteModalRef" class="modal fade" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header modal-header-brand">
+                        <h5 class="modal-title">Eliminar rol</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" />
+                    </div>
+                    <div class="modal-body">
+                        ¿Eliminar el rol <strong>{{ selected?.name }}</strong>?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-brand" :disabled="deleting" @click="confirmDelete">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -189,11 +222,15 @@ const roles = ref([]);
 const allPermissions = ref([]);
 const loading = ref(true);
 const saving = ref(false);
+const deleting = ref(false);
 const modalErrors = ref([]);
 const editingId = ref(null);
+const selected = ref(null);
 const modalRef = ref(null);
+const deleteModalRef = ref(null);
 
 let bsModal = null;
+let deleteModal = null;
 
 const emptyForm = () => ({
     name: '',
@@ -216,6 +253,7 @@ const permissionsByModule = computed(() =>
 
 onMounted(async () => {
     bsModal = new Modal(modalRef.value);
+    deleteModal = new Modal(deleteModalRef.value);
     await Promise.all([loadRoles(), loadPermissions()]);
 });
 
@@ -223,7 +261,7 @@ async function loadRoles() {
     loading.value = true;
 
     try {
-        const { data } = await axios.get('/admin/roles/get');
+        const { data } = await axios.get('/configuracion/roles/get');
         roles.value = data.data;
     } finally {
         loading.value = false;
@@ -231,7 +269,7 @@ async function loadRoles() {
 }
 
 async function loadPermissions() {
-    const { data } = await axios.get('/admin/permissions/get');
+    const { data } = await axios.get('/configuracion/permissions/get');
     allPermissions.value = data.data;
 }
 
@@ -255,19 +293,24 @@ function openEdit(role) {
     bsModal.show();
 }
 
+function openDelete(role) {
+    selected.value = role;
+    deleteModal.show();
+}
+
 async function save() {
     saving.value = true;
     modalErrors.value = [];
 
     try {
         if (editingId.value) {
-            const { data } = await axios.put(`/admin/roles/update/${editingId.value}`, form.value);
+            const { data } = await axios.put(`/configuracion/roles/update/${editingId.value}`, form.value);
             const index = roles.value.findIndex((r) => r.id === editingId.value);
             if (index !== -1) {
                 roles.value[index] = data.data;
             }
         } else {
-            const { data } = await axios.post('/admin/roles/store', form.value);
+            const { data } = await axios.post('/configuracion/roles/store', form.value);
             roles.value.push(data.data);
         }
 
@@ -282,6 +325,22 @@ async function save() {
         }
     } finally {
         saving.value = false;
+    }
+}
+
+async function confirmDelete() {
+    deleting.value = true;
+    try {
+        await axios.delete(`/configuracion/roles/destroy/${selected.value.id}`);
+        roles.value = roles.value.filter((r) => r.id !== selected.value.id);
+        deleteModal.hide();
+    } catch (error) {
+        const serverErrors = error.response?.data?.errors;
+        modalErrors.value = serverErrors
+            ? Object.values(serverErrors).flat()
+            : [error.response?.data?.message ?? 'No se pudo eliminar el rol.'];
+    } finally {
+        deleting.value = false;
     }
 }
 </script>

@@ -64,12 +64,16 @@ class CheckPermission
             return ['dashboard'];
         }
 
-        if (preg_match('/^admin\/users\//', $path)) {
+        if (preg_match('/^configuracion\/usuarios\//', $path)) {
             return ['users'];
         }
 
-        if (preg_match('/^admin\/(roles\/|permissions\/)/', $path)) {
+        if (preg_match('/^configuracion\/(roles\/|permissions\/)/', $path)) {
             return ['roles'];
+        }
+
+        if (preg_match('/^configuracion\/configuraciones\//', $path)) {
+            return ['configuraciones'];
         }
 
         if (preg_match('/^catalogos\/categorias\//', $path)) {

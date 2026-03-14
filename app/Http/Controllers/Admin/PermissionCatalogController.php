@@ -13,12 +13,15 @@ class PermissionCatalogController extends Controller
         $permissions = Permission::query()
             ->where('activo', true)
             ->orderBy('module')
+            ->orderBy('orden')
             ->orderBy('name')
             ->get([
                 'id',
                 'name',
                 'code',
                 'module',
+                'ruta',
+                'orden',
             ]);
 
         return response()->json([
