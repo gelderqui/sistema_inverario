@@ -13,7 +13,7 @@ export const useAuthStore = defineStore('auth', {
     getters: {
         isAuthenticated: (state) => Boolean(state.user),
         permissionCodes: (state) => state.user?.permissions?.map((permission) => permission.code) ?? [],
-        roleCodes: (state) => state.user?.roles?.map((role) => role.code) ?? [],
+        roleCodes: (state) => (state.user?.role ? [state.user.role.code] : []),
     },
 
     actions: {
@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async fetchCsrfCookie() {
-            await axios.get('/sanctum/csrf-cookie');
+            await axios.get('/sanctum/csrf-cookie', { baseURL: '' });
         },
 
         async fetchUser() {

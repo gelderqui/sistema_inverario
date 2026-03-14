@@ -204,7 +204,7 @@ function itemSubtotal(item) {
 async function loadCompras() {
     loading.value = true;
     try {
-        const { data } = await axios.get('/compras');
+        const { data } = await axios.get('/compras/get');
         compras.value = data.data;
     } finally {
         loading.value = false;
@@ -212,7 +212,7 @@ async function loadCompras() {
 }
 
 async function loadCatalogs() {
-    const { data } = await axios.get('/compras/catalogs');
+    const { data } = await axios.get('/compras/get/catalogs');
     catalogs.value = data.data;
 }
 
@@ -250,7 +250,7 @@ async function save() {
             })),
         };
 
-        const { data } = await axios.post('/compras', payload);
+        const { data } = await axios.post('/compras/store', payload);
         compras.value.unshift(data.data);
         alerts.value = data.alerts ?? [];
         formModal.hide();

@@ -36,14 +36,8 @@
                             <td>{{ user.email }}</td>
                             <td>{{ user.telefono ?? '—' }}</td>
                             <td>
-                                <span
-                                    v-for="role in user.roles"
-                                    :key="role.id"
-                                    class="badge text-bg-dark me-1"
-                                >
-                                    {{ role.name }}
-                                </span>
-                                <span v-if="!user.roles?.length" class="text-body-secondary small">Sin rol</span>
+                                <span v-if="user.role" class="badge text-bg-dark">{{ user.role.name }}</span>
+                                <span v-else class="text-body-secondary small">Sin rol</span>
                             </td>
                             <td>
                                 <span class="badge" :class="user.activo ? 'text-bg-success' : 'text-bg-secondary'">
@@ -141,25 +135,13 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label fw-semibold">Roles</label>
-                                    <div class="d-flex flex-wrap gap-3">
-                                        <div
-                                            v-for="role in catalogs.roles"
-                                            :key="role.id"
-                                            class="form-check"
-                                        >
-                                            <input
-                                                :id="`role-${role.id}`"
-                                                v-model="form.role_ids"
-                                                :value="role.id"
-                                                type="checkbox"
-                                                class="form-check-input"
-                                            >
-                                            <label :for="`role-${role.id}`" class="form-check-label">
-                                                {{ role.name }}
-                                            </label>
-                                        </div>
-                                    </div>
+                                    <label class="form-label fw-semibold" for="u-role">Rol</label>
+                                    <select id="u-role" v-model="form.role_id" class="form-select">
+                                        <option :value="null">— Sin rol —</option>
+                                        <option v-for="role in catalogs.roles" :key="role.id" :value="role.id">
+                                            {{ role.name }}
+                                        </option>
+                                    </select>
                                 </div>
 
                                 <div class="col-12">
@@ -214,7 +196,7 @@ const emptyForm = () => ({
     telefono: '',
     password: '',
     activo: true,
-    role_ids: [],
+    role_id: null,
 });
 
 const form = ref(emptyForm());
@@ -228,7 +210,7 @@ async function loadUsers() {
     loading.value = true;
 
     try {
-        const { data } = await axios.get('/admin/users');
+        const { data } = await axios.get('/admin/users/get');
         users.value = data.data;
     } finally {
         loading.value = false;
@@ -236,7 +218,7 @@ async function loadUsers() {
 }
 
 async function loadCatalogs() {
-    const { data } = await axios.get('/admin/users/catalogs');
+    const { data } = await axios.get('/admin/users/get/catalogs');
     catalogs.value = data;
 }
 
@@ -256,7 +238,7 @@ function openEdit(user) {
         telefono: user.telefono ?? '',
         password: '',
         activo: user.activo,
-        role_ids: user.roles?.map((r) => r.id) ?? [],
+        role_id: user.role?.id ?? null,
     };
     modalErrors.value = [];
     bsModal.show();
@@ -268,13 +250,13 @@ async function save() {
 
     try {
         if (editingId.value) {
-            const { data } = await axios.put(`/admin/users/${editingId.value}`, form.value);
+            const { data } = await axios.put(`/admin/users/update/${editingId.value}`, form.value);
             const index = users.value.findIndex((u) => u.id === editingId.value);
             if (index !== -1) {
                 users.value[index] = data.data;
             }
         } else {
-            const { data } = await axios.post('/admin/users', form.value);
+            const { data } = await axios.post('/admin/users/store', form.value);
             users.value.push(data.data);
         }
 

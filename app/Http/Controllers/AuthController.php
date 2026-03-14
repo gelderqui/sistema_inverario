@@ -32,7 +32,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        $user = $request->user()->load(['roles.permissions', 'permissions']);
+        $user = $request->user()->load(['role.permissions']);
 
         return response()->json([
             'message' => 'Authenticated successfully.',
@@ -43,7 +43,7 @@ class AuthController extends Controller
     public function show(Request $request): AuthenticatedUserResource
     {
         return new AuthenticatedUserResource(
-            $request->user()->load(['roles.permissions', 'permissions'])
+            $request->user()->load(['role.permissions'])
         );
     }
 

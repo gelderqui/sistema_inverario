@@ -30,8 +30,4 @@ class Permission extends Model
         return $this->belongsToMany(Role::class)->withTimestamps();
     }
 
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class)->withTimestamps();
-    }
 }

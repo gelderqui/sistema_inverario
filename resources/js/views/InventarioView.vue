@@ -124,7 +124,7 @@ onMounted(async () => {
 async function loadExistencias() {
     loading.value = true;
     try {
-        const { data } = await axios.get('/inventario/existencias', {
+        const { data } = await axios.get('/inventario/existencias/get', {
             params: {
                 search: search.value || null,
                 solo_bajo_stock: soloBajoStock.value ? 1 : 0,
@@ -137,7 +137,7 @@ async function loadExistencias() {
 }
 
 async function loadMovimientos() {
-    const { data } = await axios.get('/inventario/movimientos');
+    const { data } = await axios.get('/inventario/movimientos/get');
     movimientos.value = data.data;
 }
 

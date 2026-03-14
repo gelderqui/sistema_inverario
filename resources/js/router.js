@@ -12,6 +12,23 @@ import RolesView from '@/views/RolesView.vue';
 import UnauthorizedView from '@/views/UnauthorizedView.vue';
 import UsersView from '@/views/UsersView.vue';
 
+const permissionByPath = [
+    { pattern: /^\/$/, permission: 'dashboard' },
+    { pattern: /^\/usuarios(\/|$)/, permission: 'users' },
+    { pattern: /^\/roles(\/|$)/, permission: 'roles' },
+    { pattern: /^\/categorias(\/|$)/, permission: 'categorias' },
+    { pattern: /^\/productos(\/|$)/, permission: 'productos' },
+    { pattern: /^\/proveedores(\/|$)/, permission: 'proveedores' },
+    { pattern: /^\/compras(\/|$)/, permission: 'compras' },
+    { pattern: /^\/inventario(\/|$)/, permission: 'inventario' },
+];
+
+function requiredPermissionForPath(path) {
+    const match = permissionByPath.find((item) => item.pattern.test(path));
+
+    return match?.permission ?? null;
+}
+
 const routes = [
     {
         path: '/',
@@ -19,7 +36,6 @@ const routes = [
         component: DashboardView,
         meta: {
             requiresAuth: true,
-            permissions: ['dashboard.view'],
         },
     },
     {
@@ -36,7 +52,6 @@ const routes = [
         component: UsersView,
         meta: {
             requiresAuth: true,
-            permissions: ['users.manage'],
         },
     },
     {
@@ -45,7 +60,6 @@ const routes = [
         component: RolesView,
         meta: {
             requiresAuth: true,
-            permissions: ['roles.manage'],
         },
     },
     {
@@ -54,7 +68,6 @@ const routes = [
         component: CategoriasView,
         meta: {
             requiresAuth: true,
-            permissions: ['inventory.manage'],
         },
     },
     {
@@ -63,7 +76,6 @@ const routes = [
         component: ProductosView,
         meta: {
             requiresAuth: true,
-            permissions: ['inventory.manage'],
         },
     },
     {
@@ -72,7 +84,6 @@ const routes = [
         component: ProveedoresView,
         meta: {
             requiresAuth: true,
-            permissions: ['inventory.manage'],
         },
     },
     {
@@ -81,7 +92,6 @@ const routes = [
         component: ComprasView,
         meta: {
             requiresAuth: true,
-            permissions: ['purchases.view', 'purchases.create'],
         },
     },
     {
@@ -90,12 +100,19 @@ const routes = [
         component: InventarioView,
         meta: {
             requiresAuth: true,
-            permissions: ['inventory.view'],
         },
     },
     {
-        path: '/unauthorized',
-        name: 'unauthorized',
+        path: '/error',
+        name: 'error',
+        component: UnauthorizedView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/:catchAll(.*)',
+        name: 'not-found',
         component: UnauthorizedView,
         meta: {
             requiresAuth: true,
@@ -126,8 +143,12 @@ router.beforeEach(async (to) => {
         return { name: 'dashboard' };
     }
 
-    if (to.meta.permissions && !authStore.hasAnyPermission(to.meta.permissions)) {
-        return { name: 'unauthorized' };
+    if (!to.meta.guestOnly && authStore.isAuthenticated) {
+        const permission = requiredPermissionForPath(to.path);
+
+        if (permission && !authStore.hasAnyPermission([permission])) {
+            return { name: 'error' };
+        }
     }
 
     return true;

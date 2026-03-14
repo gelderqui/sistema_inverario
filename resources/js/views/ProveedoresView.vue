@@ -204,7 +204,7 @@ onMounted(async () => {
 async function loadProveedores() {
   loading.value = true;
   try {
-    const { data } = await axios.get('/catalogos/proveedores');
+    const { data } = await axios.get('/catalogos/proveedores/get');
     proveedores.value = data.data;
   } finally {
     loading.value = false;
@@ -255,11 +255,11 @@ async function save() {
     };
 
     if (editingId.value) {
-      const { data } = await axios.put(`/catalogos/proveedores/${editingId.value}`, payload);
+      const { data } = await axios.put(`/catalogos/proveedores/update/${editingId.value}`, payload);
       const idx = proveedores.value.findIndex((x) => x.id === editingId.value);
       if (idx !== -1) proveedores.value[idx] = data.data;
     } else {
-      const { data } = await axios.post('/catalogos/proveedores', payload);
+      const { data } = await axios.post('/catalogos/proveedores/store', payload);
       proveedores.value.push(data.data);
       proveedores.value.sort((a, b) => a.nombre.localeCompare(b.nombre));
     }
@@ -276,7 +276,7 @@ async function save() {
 async function confirmToggle() {
   toggling.value = true;
   try {
-    const { data } = await axios.patch(`/catalogos/proveedores/${selected.value.id}/toggle`);
+    const { data } = await axios.patch(`/catalogos/proveedores/toggle/${selected.value.id}`);
     const idx = proveedores.value.findIndex((x) => x.id === selected.value.id);
     if (idx !== -1) proveedores.value[idx] = { ...proveedores.value[idx], activo: data.data.activo };
     toggleModal.hide();
@@ -288,7 +288,7 @@ async function confirmToggle() {
 async function confirmDelete() {
   deleting.value = true;
   try {
-    await axios.delete(`/catalogos/proveedores/${selected.value.id}`);
+    await axios.delete(`/catalogos/proveedores/destroy/${selected.value.id}`);
     proveedores.value = proveedores.value.filter((x) => x.id !== selected.value.id);
     deleteModal.hide();
   } catch (error) {

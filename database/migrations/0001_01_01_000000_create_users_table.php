@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('telefono')->nullable();
             $table->boolean('activo')->default(true);
+            $table->unsignedBigInteger('role_id')->nullable()->index();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

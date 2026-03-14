@@ -104,7 +104,7 @@ const nombreSistema = ref('Sistema POS e Inventario');
 
 onMounted(async () => {
     try {
-        const { data } = await axios.get('/configuraciones/login');
+        const { data } = await axios.get('/configuraciones/get/login');
         nombreSistema.value = data?.nombre_empresa ?? nombreSistema.value;
     } catch {
         // Usa valor por defecto si el endpoint no esta disponible.

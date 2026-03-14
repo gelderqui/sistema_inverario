@@ -384,7 +384,7 @@ onMounted(async () => {
 async function loadProductos() {
     loading.value = true;
     try {
-        const { data } = await axios.get('/catalogos/productos');
+        const { data } = await axios.get('/catalogos/productos/get');
         productos.value = data.data;
     } finally {
         loading.value = false;
@@ -392,12 +392,12 @@ async function loadProductos() {
 }
 
 async function loadCategorias() {
-    const { data } = await axios.get('/catalogos/categorias?solo_activas=1');
+    const { data } = await axios.get('/catalogos/categorias/get?solo_activas=1');
     categoriasActivas.value = data.data;
 }
 
 async function loadProveedores() {
-    const { data } = await axios.get('/catalogos/proveedores');
+    const { data } = await axios.get('/catalogos/proveedores/get');
     proveedoresActivos.value = (data.data ?? []).filter((item) => item.activo);
 }
 
@@ -451,11 +451,11 @@ async function save() {
         };
 
         if (editingId.value) {
-            const { data } = await axios.put(`/catalogos/productos/${editingId.value}`, payload);
+            const { data } = await axios.put(`/catalogos/productos/update/${editingId.value}`, payload);
             const idx = productos.value.findIndex((p) => p.id === editingId.value);
             if (idx !== -1) productos.value[idx] = data.data;
         } else {
-            const { data } = await axios.post('/catalogos/productos', payload);
+            const { data } = await axios.post('/catalogos/productos/store', payload);
             productos.value.push(data.data);
             productos.value.sort((a, b) => a.nombre.localeCompare(b.nombre));
         }
@@ -473,7 +473,7 @@ async function save() {
 async function confirmToggle() {
     toggling.value = true;
     try {
-        const { data } = await axios.patch(`/catalogos/productos/${selected.value.id}/toggle`);
+        const { data } = await axios.patch(`/catalogos/productos/toggle/${selected.value.id}`);
         const idx = productos.value.findIndex((p) => p.id === selected.value.id);
         if (idx !== -1) productos.value[idx] = { ...productos.value[idx], activo: data.data.activo };
         toggleModal.hide();
@@ -485,7 +485,7 @@ async function confirmToggle() {
 async function confirmDelete() {
     deleting.value = true;
     try {
-        await axios.delete(`/catalogos/productos/${selected.value.id}`);
+        await axios.delete(`/catalogos/productos/destroy/${selected.value.id}`);
         productos.value = productos.value.filter((p) => p.id !== selected.value.id);
         deleteModal.hide();
     } finally {

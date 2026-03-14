@@ -14,7 +14,7 @@ class UserManagementController extends Controller
     public function index(): JsonResponse
     {
         $users = User::query()
-            ->with(['roles:id,name,code'])
+            ->with(['role:id,name,code'])
             ->orderBy('name')
             ->get([
                 'id',
@@ -23,6 +23,7 @@ class UserManagementController extends Controller
                 'email',
                 'telefono',
                 'activo',
+                'role_id',
                 'created_at',
             ]);
 
@@ -40,8 +41,7 @@ class UserManagementController extends Controller
             'telefono' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'string', 'min:8'],
             'activo' => ['sometimes', 'boolean'],
-            'role_ids' => ['nullable', 'array'],
-            'role_ids.*' => ['integer', Rule::exists('roles', 'id')],
+            'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')],
         ]);
 
         $user = User::query()->create([
@@ -50,11 +50,11 @@ class UserManagementController extends Controller
             'email' => $validated['email'],
             'telefono' => $validated['telefono'] ?? null,
             'password' => $validated['password'],
+            'role_id' => $validated['role_id'] ?? null,
             'activo' => (bool) ($validated['activo'] ?? true),
         ]);
 
-        $user->roles()->sync($validated['role_ids'] ?? []);
-        $user->load('roles:id,name,code');
+        $user->load('role:id,name,code');
 
         return response()->json([
             'message' => 'Usuario creado correctamente.',
@@ -81,8 +81,7 @@ class UserManagementController extends Controller
             'telefono' => ['nullable', 'string', 'max:30'],
             'password' => ['nullable', 'string', 'min:8'],
             'activo' => ['required', 'boolean'],
-            'role_ids' => ['nullable', 'array'],
-            'role_ids.*' => ['integer', Rule::exists('roles', 'id')],
+            'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')],
         ]);
 
         $payload = [
@@ -90,6 +89,7 @@ class UserManagementController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'telefono' => $validated['telefono'] ?? null,
+            'role_id' => $validated['role_id'] ?? null,
             'activo' => (bool) $validated['activo'],
         ];
 
@@ -98,8 +98,7 @@ class UserManagementController extends Controller
         }
 
         $user->update($payload);
-        $user->roles()->sync($validated['role_ids'] ?? []);
-        $user->load('roles:id,name,code');
+        $user->load('role:id,name,code');
 
         return response()->json([
             'message' => 'Usuario actualizado correctamente.',

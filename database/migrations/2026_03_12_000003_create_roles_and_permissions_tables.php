@@ -40,27 +40,19 @@ return new class extends Migration
             $table->primary(['permission_id', 'role_id']);
         });
 
-        Schema::create('role_user', function (Blueprint $table): void {
-            $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
-
-            $table->primary(['role_id', 'user_id']);
-        });
-
-        Schema::create('permission_user', function (Blueprint $table): void {
-            $table->foreignId('permission_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
-
-            $table->primary(['permission_id', 'user_id']);
+        // Ahora que roles existe, agregar FK de role_id en users
+        Schema::table('users', function (Blueprint $table): void {
+            $table->foreign('role_id')->references('id')->on('roles')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('permission_user');
-        Schema::dropIfExists('role_user');
+        // Primero quitar la FK de users antes de eliminar roles
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropForeign(['role_id']);
+            $table->dropColumn('role_id');
+        });
         Schema::dropIfExists('permission_role');
         Schema::dropIfExists('permissions');
         Schema::dropIfExists('roles');

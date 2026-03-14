@@ -158,7 +158,7 @@ watch(
         }
 
         try {
-            const { data } = await axios.get('/configuraciones/publicas');
+            const { data } = await axios.get('/configuraciones/get/publicas');
             nombreSistema.value = data?.nombre_empresa ?? nombreSistema.value;
             configuracionCargada.value = true;
         } catch {

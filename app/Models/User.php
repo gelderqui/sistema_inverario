@@ -4,7 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Collection;
@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email',
         'telefono',
         'activo',
+        'role_id',
         'password',
     ];
 
@@ -53,50 +54,31 @@ class User extends Authenticatable
         ];
     }
 
-    public function permissions(): BelongsToMany
+    public function role(): BelongsTo
     {
-        return $this->belongsToMany(Permission::class)->withTimestamps();
-    }
-
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class)->withTimestamps();
+        return $this->belongsTo(Role::class);
     }
 
     public function hasRole(string|array $roles): bool
     {
         $roleValues = collect((array) $roles)->filter()->values();
 
-        if ($roleValues->isEmpty()) {
+        if ($roleValues->isEmpty() || ! $this->role) {
             return false;
         }
 
-        $assignedRoles = $this->relationLoaded('roles') ? $this->roles : $this->roles()->get();
-
-        return $assignedRoles->contains(function (Role $role) use ($roleValues): bool {
-            return $roleValues->contains($role->code) || $roleValues->contains($role->name);
-        });
+        return $roleValues->contains($this->role->code) || $roleValues->contains($this->role->name);
     }
 
     public function allPermissions(): Collection
     {
-        $directPermissions = $this->relationLoaded('permissions')
-            ? $this->permissions
-            : $this->permissions()->get();
+        $role = $this->relationLoaded('role') ? $this->role : $this->role()->with('permissions')->first();
 
-        $roles = $this->relationLoaded('roles')
-            ? $this->roles
-            : $this->roles()->with('permissions')->get();
+        if (! $role) {
+            return collect();
+        }
 
-        $rolePermissions = $roles
-            ->loadMissing('permissions')
-            ->flatMap(fn (Role $role) => $role->permissions);
-
-        return $directPermissions
-            ->concat($rolePermissions)
-            ->unique('id')
-            ->sortBy('code')
-            ->values();
+        return $role->loadMissing('permissions')->permissions->sortBy('code')->values();
     }
 
     public function hasPermission(string|array $permissions): bool

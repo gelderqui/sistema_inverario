@@ -9,18 +9,18 @@ class AuthenticatedUserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->resource->loadMissing(['roles.permissions', 'permissions']);
+        $this->resource->loadMissing(['role.permissions']);
 
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'roles' => $this->roles->map(fn ($role) => [
-                'id' => $role->id,
-                'name' => $role->name,
-                'code' => $role->code,
-                'description' => $role->description,
-            ])->values(),
+            'role' => $this->role ? [
+                'id' => $this->role->id,
+                'name' => $this->role->name,
+                'code' => $this->role->code,
+                'description' => $this->role->description,
+            ] : null,
             'permissions' => $this->allPermissions()->map(fn ($permission) => [
                 'id' => $permission->id,
                 'name' => $permission->name,

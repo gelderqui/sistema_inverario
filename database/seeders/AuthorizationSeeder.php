@@ -13,23 +13,14 @@ class AuthorizationSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            ['name' => 'View dashboard', 'code' => 'dashboard.view', 'module' => 'dashboard'],
-            ['name' => 'Manage users', 'code' => 'users.manage', 'module' => 'admin'],
-            ['name' => 'Manage roles', 'code' => 'roles.manage', 'module' => 'admin'],
-            ['name' => 'View inventory', 'code' => 'inventory.view', 'module' => 'inventory'],
-            ['name' => 'Manage inventory', 'code' => 'inventory.manage', 'module' => 'inventory'],
-            ['name' => 'Adjust inventory', 'code' => 'inventory.adjust', 'module' => 'inventory'],
-            ['name' => 'View purchases', 'code' => 'purchases.view', 'module' => 'purchases'],
-            ['name' => 'Create purchases', 'code' => 'purchases.create', 'module' => 'purchases'],
-            ['name' => 'Receive purchases', 'code' => 'purchases.receive', 'module' => 'purchases'],
-            ['name' => 'Access POS', 'code' => 'pos.access', 'module' => 'sales'],
-            ['name' => 'Create sales', 'code' => 'sales.create', 'module' => 'sales'],
-            ['name' => 'Void sales', 'code' => 'sales.void', 'module' => 'sales'],
-            ['name' => 'Open cash', 'code' => 'cash.open', 'module' => 'cash'],
-            ['name' => 'Close cash', 'code' => 'cash.close', 'module' => 'cash'],
-            ['name' => 'Perform cash count', 'code' => 'cash.count', 'module' => 'cash'],
-            ['name' => 'View reports', 'code' => 'reports.view', 'module' => 'reports'],
-            ['name' => 'Export reports', 'code' => 'reports.export', 'module' => 'reports'],
+            ['name' => 'Dashboard', 'code' => 'dashboard', 'module' => 'dashboard'],
+            ['name' => 'Usuarios', 'code' => 'users', 'module' => 'admin'],
+            ['name' => 'Roles', 'code' => 'roles', 'module' => 'admin'],
+            ['name' => 'Categorias', 'code' => 'categorias', 'module' => 'catalogos'],
+            ['name' => 'Productos', 'code' => 'productos', 'module' => 'catalogos'],
+            ['name' => 'Proveedores', 'code' => 'proveedores', 'module' => 'catalogos'],
+            ['name' => 'Compras', 'code' => 'compras', 'module' => 'compras'],
+            ['name' => 'Inventario', 'code' => 'inventario', 'module' => 'inventario'],
         ];
 
         foreach ($permissions as $permissionData) {
@@ -52,43 +43,31 @@ class AuthorizationSeeder extends Seeder
                 'name' => 'Operador',
                 'description' => 'Operacion general con acceso amplio.',
                 'permissions' => [
-                    'dashboard.view',
-                    'inventory.view',
-                    'inventory.manage',
-                    'purchases.view',
-                    'purchases.create',
-                    'purchases.receive',
-                    'pos.access',
-                    'sales.create',
-                    'cash.open',
-                    'cash.close',
-                    'cash.count',
-                    'reports.view',
+                    'dashboard',
+                    'categorias',
+                    'productos',
+                    'proveedores',
+                    'compras',
+                    'inventario',
                 ],
             ],
             'almacenero' => [
                 'name' => 'Almacenero',
                 'description' => 'Gestion de stock y compras.',
                 'permissions' => [
-                    'dashboard.view',
-                    'inventory.view',
-                    'inventory.manage',
-                    'inventory.adjust',
-                    'purchases.view',
-                    'purchases.create',
-                    'purchases.receive',
+                    'dashboard',
+                    'categorias',
+                    'productos',
+                    'proveedores',
+                    'compras',
+                    'inventario',
                 ],
             ],
             'cajero' => [
                 'name' => 'Cajero',
                 'description' => 'Operacion de ventas y caja.',
                 'permissions' => [
-                    'dashboard.view',
-                    'pos.access',
-                    'sales.create',
-                    'cash.open',
-                    'cash.close',
-                    'cash.count',
+                    'dashboard',
                 ],
             ],
         ];
@@ -111,18 +90,18 @@ class AuthorizationSeeder extends Seeder
             $role->permissions()->sync($permissionIds);
         }
 
-        $adminUser = User::query()->updateOrCreate(
+        $adminRole = Role::query()->where('code', 'admin')->firstOrFail();
+
+        User::query()->updateOrCreate(
             ['email' => 'admin@admin.local'],
             [
                 'username' => 'admin',
                 'name' => 'Administrador General',
                 'telefono' => null,
                 'activo' => true,
+                'role_id' => $adminRole->id,
                 'password' => Hash::make('password'),
             ]
         );
-
-        $adminRole = Role::query()->where('code', 'admin')->firstOrFail();
-        $adminUser->roles()->syncWithoutDetaching([$adminRole->id]);
     }
 }

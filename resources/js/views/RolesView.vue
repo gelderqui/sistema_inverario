@@ -223,7 +223,7 @@ async function loadRoles() {
     loading.value = true;
 
     try {
-        const { data } = await axios.get('/admin/roles');
+        const { data } = await axios.get('/admin/roles/get');
         roles.value = data.data;
     } finally {
         loading.value = false;
@@ -231,7 +231,7 @@ async function loadRoles() {
 }
 
 async function loadPermissions() {
-    const { data } = await axios.get('/admin/permissions');
+    const { data } = await axios.get('/admin/permissions/get');
     allPermissions.value = data.data;
 }
 
@@ -261,13 +261,13 @@ async function save() {
 
     try {
         if (editingId.value) {
-            const { data } = await axios.put(`/admin/roles/${editingId.value}`, form.value);
+            const { data } = await axios.put(`/admin/roles/update/${editingId.value}`, form.value);
             const index = roles.value.findIndex((r) => r.id === editingId.value);
             if (index !== -1) {
                 roles.value[index] = data.data;
             }
         } else {
-            const { data } = await axios.post('/admin/roles', form.value);
+            const { data } = await axios.post('/admin/roles/store', form.value);
             roles.value.push(data.data);
         }
 
