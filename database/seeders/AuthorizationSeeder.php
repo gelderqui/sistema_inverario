@@ -13,16 +13,18 @@ class AuthorizationSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            ['name' => 'Dashboard',    'code' => 'dashboard',  'module' => 'dashboard',  'module_label' => null,             'module_icono' => null,                            'ruta' => '/',           'icono' => 'fa-solid fa-chart-line',     'orden' => 1],
-            ['name' => 'Categorias',   'code' => 'categorias', 'module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/categorias', 'icono' => 'fa-solid fa-tags',           'orden' => 3],
-            ['name' => 'Proveedores',  'code' => 'proveedores','module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/proveedores','icono' => 'fa-solid fa-truck-field',    'orden' => 4],
-            ['name' => 'Productos',    'code' => 'productos',  'module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/productos',  'icono' => 'fa-solid fa-box',            'orden' => 5],
-            ['name' => 'Clientes',     'code' => 'cliente',    'module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/clientes',   'icono' => 'fa-solid fa-address-card',   'orden' => 6],
-            ['name' => 'Compras',      'code' => 'compras',    'module' => 'compras',    'module_label' => null,             'module_icono' => null,                            'ruta' => '/compras',    'icono' => 'fa-solid fa-truck-ramp-box', 'orden' => 7],
-            ['name' => 'Inventario',   'code' => 'inventario', 'module' => 'inventario', 'module_label' => null,             'module_icono' => null,                            'ruta' => '/inventario', 'icono' => 'fa-solid fa-warehouse',      'orden' => 8],
-            ['name' => 'Usuarios',     'code' => 'users',      'module' => 'configuracion', 'module_label' => 'Configuracion', 'module_icono' => 'fa-solid fa-gears',             'ruta' => '/usuarios',                  'icono' => 'fa-solid fa-users',       'orden' => 20],
-            ['name' => 'Roles',        'code' => 'roles',      'module' => 'configuracion', 'module_label' => 'Configuracion', 'module_icono' => 'fa-solid fa-gears',             'ruta' => '/roles',                     'icono' => 'fa-solid fa-user-shield', 'orden' => 21],
-            ['name' => 'Configuraciones', 'code' => 'configuraciones', 'module' => 'configuracion', 'module_label' => 'Configuracion', 'module_icono' => 'fa-solid fa-gears',     'ruta' => '/configuraciones',           'icono' => 'fa-solid fa-sliders', 'orden' => 22],
+            ['name' => 'Dashboard',    'code' => 'dashboard',  'module' => 'dashboard',  'module_label' => null,             'module_icono' => null,                            'ruta' => '/',               'icono' => 'fa-solid fa-chart-line',     'orden' => 10],
+            ['name' => 'Categorias',   'code' => 'categorias', 'module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/categorias',     'icono' => 'fa-solid fa-tags',           'orden' => 20],
+            ['name' => 'Proveedores',  'code' => 'proveedores','module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/proveedores',    'icono' => 'fa-solid fa-truck-field',    'orden' => 21],
+            ['name' => 'Productos',    'code' => 'productos',  'module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/productos',      'icono' => 'fa-solid fa-box',            'orden' => 22],
+            ['name' => 'Clientes',     'code' => 'cliente',    'module' => 'catalogos',  'module_label' => 'Catalogo',       'module_icono' => 'fa-solid fa-boxes-stacked',    'ruta' => '/clientes',       'icono' => 'fa-solid fa-address-card',   'orden' => 23],
+            ['name' => 'Compras',      'code' => 'compras',    'module' => 'compras',    'module_label' => null,             'module_icono' => null,                            'ruta' => '/compras',        'icono' => 'fa-solid fa-truck-ramp-box', 'orden' => 40],
+            ['name' => 'Ventas',       'code' => 'ventas',     'module' => 'ventas',     'module_label' => null,             'module_icono' => null,                            'ruta' => '/ventas',         'icono' => 'fa-solid fa-cash-register',  'orden' => 50],
+            ['name' => 'Inventario',   'code' => 'inventario', 'module' => 'inventario', 'module_label' => null,             'module_icono' => null,                            'ruta' => '/inventario',     'icono' => 'fa-solid fa-warehouse',      'orden' => 60],
+            ['name' => 'Gastos',       'code' => 'gastos',     'module' => 'gastos',     'module_label' => null,             'module_icono' => null,                            'ruta' => '/gastos',         'icono' => 'fa-solid fa-receipt',        'orden' => 70],
+            ['name' => 'Usuarios',     'code' => 'users',      'module' => 'configuracion', 'module_label' => 'Configuracion', 'module_icono' => 'fa-solid fa-gears',          'ruta' => '/usuarios',       'icono' => 'fa-solid fa-users',          'orden' => 90],
+            ['name' => 'Roles',        'code' => 'roles',      'module' => 'configuracion', 'module_label' => 'Configuracion', 'module_icono' => 'fa-solid fa-gears',          'ruta' => '/roles',          'icono' => 'fa-solid fa-user-shield',    'orden' => 91],
+            ['name' => 'Configuraciones', 'code' => 'configuraciones', 'module' => 'configuracion', 'module_label' => 'Configuracion', 'module_icono' => 'fa-solid fa-gears',  'ruta' => '/configuraciones','icono' => 'fa-solid fa-sliders',        'orden' => 92],
         ];
 
         foreach ($permissions as $permissionData) {
@@ -51,7 +53,9 @@ class AuthorizationSeeder extends Seeder
                     'productos',
                     'cliente',
                     'compras',
+                    'ventas',
                     'inventario',
+                    'gastos',
                 ],
             ],
             'almacenero' => [
@@ -71,6 +75,8 @@ class AuthorizationSeeder extends Seeder
                 'description' => 'Acceso a caja.',
                 'permissions' => [
                     'dashboard',
+                    'ventas',
+                    'gastos',
                 ],
             ],
         ];

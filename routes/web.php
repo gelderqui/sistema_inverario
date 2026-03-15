@@ -11,7 +11,10 @@ use App\Http\Controllers\Catalogos\ProveedorController;
 use App\Http\Controllers\Catalogos\ProductoController;
 use App\Http\Controllers\Compras\CompraController;
 use App\Http\Controllers\ConfiguracionController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Gastos\GastoController;
 use App\Http\Controllers\Inventario\InventarioController;
+use App\Http\Controllers\Ventas\VentaController;
 use Illuminate\Support\Facades\Route;
 
 // API endpoints
@@ -31,12 +34,7 @@ Route::prefix('api')->group(function (): void {
     Route::middleware(['auth:sanctum', 'permission', 'ajax'])->group(function (): void {
         Route::get('/configuraciones/get/publicas', [ConfiguracionController::class, 'publicas']);
 
-        Route::get('/dashboard/get', function () {
-            return response()->json([
-                'message' => 'Dashboard API is ready.',
-                'timestamp' => now()->toIso8601String(),
-            ]);
-        });
+        Route::get('/dashboard/get', [DashboardController::class, 'index']);
 
         Route::prefix('usuarios')->group(function (): void {
             Route::get('/get', [UserManagementController::class, 'index']);
@@ -104,6 +102,19 @@ Route::prefix('api')->group(function (): void {
             Route::get('/get', [CompraController::class, 'index']);
             Route::get('/get/catalogs', [CompraController::class, 'catalogs']);
             Route::post('/store', [CompraController::class, 'store']);
+        });
+
+        Route::prefix('ventas')->group(function (): void {
+            Route::get('/get', [VentaController::class, 'index']);
+            Route::get('/get/catalogs', [VentaController::class, 'catalogs']);
+            Route::post('/store', [VentaController::class, 'store']);
+        });
+
+        Route::prefix('gastos')->group(function (): void {
+            Route::get('/get', [GastoController::class, 'index']);
+            Route::get('/get/catalogs', [GastoController::class, 'catalogs']);
+            Route::get('/get/reportes', [GastoController::class, 'reportes']);
+            Route::post('/store', [GastoController::class, 'store']);
         });
 
         Route::prefix('inventario')->group(function (): void {

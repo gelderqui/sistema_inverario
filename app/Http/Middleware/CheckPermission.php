@@ -96,8 +96,16 @@ class CheckPermission
             return ['compras'];
         }
 
+        if (preg_match('/^ventas\//', $path)) {
+            return ['ventas'];
+        }
+
         if (preg_match('/^inventario\//', $path)) {
             return ['inventario'];
+        }
+
+        if (preg_match('/^gastos\//', $path)) {
+            return ['gastos'];
         }
 
         if (preg_match('/^configuraciones\//', $path) || preg_match('/^auth\//', $path)) {

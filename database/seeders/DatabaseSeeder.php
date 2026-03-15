@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             MedidaSeeder::class,
+            TipoGastoSeeder::class,
             ConfiguracionSeeder::class,
             AuthorizationSeeder::class,
             CatalogDefaultsSeeder::class,

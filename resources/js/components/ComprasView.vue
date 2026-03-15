@@ -63,20 +63,20 @@
                                 </div>
                                 <div class="col-12 col-md-8">
                                     <label class="form-label fw-semibold">Proveedor *</label>
-                                    <input
-                                        v-model="form.proveedor_query"
-                                        list="prov-datalist"
-                                        type="text"
-                                        class="form-control"
+                                    <Multiselect
+                                        v-model="form.proveedor"
+                                        :options="catalogs.proveedores"
+                                        label="nombre"
+                                        track-by="id"
                                         placeholder="Buscar proveedor..."
-                                        autocomplete="off"
-                                        @input="resolveProveedorFromQuery"
-                                        @blur="resolveProveedorFromQuery"
-                                    >
-                                    <datalist id="prov-datalist">
-                                        <option v-for="prov in catalogs.proveedores" :key="prov.id" :value="prov.nombre" />
-                                    </datalist>
-                                    <div v-if="form.proveedor_query && !form.proveedor_id" class="form-text text-danger">Proveedor no encontrado en el listado.</div>
+                                        :searchable="true"
+                                        :allow-empty="false"
+                                        :close-on-select="true"
+                                        :show-labels="false"
+                                        select-label="Seleccionar"
+                                        selected-label="Seleccionado"
+                                        deselect-label="Quitar"
+                                    />
                                 </div>
                             </div>
 
@@ -90,7 +90,7 @@
                                 <button type="button" class="btn btn-outline-brand btn-sm" :disabled="saving" @click="addItem">Agregar item</button>
                             </div>
 
-                            <div class="table-responsive">
+                            <div class="table-responsive compra-items-wrap">
                                 <table class="table table-sm compra-items-table">
                                     <thead>
                                         <tr>
@@ -111,12 +111,23 @@
                                         </tr>
                                         <tr v-for="(item, idx) in form.items" :key="idx">
                                             <td>
-                                                <select v-model="item.categoria_id" class="form-select form-select-sm" @change="onCategoryChange(item)">
-                                                    <option :value="null">Todas</option>
-                                                    <option v-for="cat in catalogs.categorias" :key="cat.id" :value="cat.id">
-                                                        {{ cat.nombre }}
-                                                    </option>
-                                                </select>
+                                                <Multiselect
+                                                    v-model="item.categoria"
+                                                    :options="catalogs.categorias"
+                                                    label="nombre"
+                                                    track-by="id"
+                                                    placeholder="Todas"
+                                                    :searchable="true"
+                                                    :allow-empty="true"
+                                                    :close-on-select="true"
+                                                    :show-labels="false"
+                                                    select-label="Seleccionar"
+                                                    selected-label="Seleccionado"
+                                                    deselect-label="Quitar"
+                                                    @select="onCategoryChange(item)"
+                                                    @remove="onCategoryChange(item)"
+                                                    @clear="onCategoryChange(item)"
+                                                />
                                             </td>
                                             <td>
                                                 <input
@@ -188,14 +199,15 @@
 <script setup>
 import { Modal } from 'bootstrap';
 import { computed, onMounted, ref } from 'vue';
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.css';
 
 import axios from '@/bootstrap';
 import FormErrors from '@/components/FormErrors.vue';
 
 const compras = ref([]);
 const catalogs = ref({ categorias: [], proveedores: [], productos: [] });
-const proveedorGeneralId = ref(null);
-const proveedorGeneralNombre = ref('');
+const proveedorGeneral = ref(null);
 const loading = ref(true);
 const saving = ref(false);
 const formErrors = ref([]);
@@ -205,7 +217,7 @@ const formModalRef = ref(null);
 let formModal = null;
 
 const emptyItem = () => ({
-    categoria_id: null,
+    categoria: null,
     producto_id: null,
     producto_query: '',
     cantidad: 1,
@@ -216,8 +228,7 @@ const emptyItem = () => ({
 });
 
 const emptyForm = () => ({
-    proveedor_id: proveedorGeneralId.value,
-    proveedor_query: proveedorGeneralNombre.value,
+    proveedor: proveedorGeneral.value,
     fecha_compra: new Date().toISOString().slice(0, 10),
     observaciones: '',
     items: [emptyItem()],
@@ -253,10 +264,7 @@ async function loadCatalogs() {
     const generalId = data.data.proveedor_general_id;
     if (generalId) {
         const prov = data.data.proveedores.find((p) => p.id === generalId);
-        if (prov) {
-            proveedorGeneralId.value = prov.id;
-            proveedorGeneralNombre.value = prov.nombre;
-        }
+        if (prov) proveedorGeneral.value = prov;
     }
 }
 
@@ -272,8 +280,9 @@ function addItem() {
 }
 
 function filteredProducts(item) {
-    if (!item.categoria_id) return catalogs.value.productos;
-    return catalogs.value.productos.filter((prod) => prod.categoria_id === item.categoria_id);
+    const categoriaId = item.categoria?.id ?? null;
+    if (!categoriaId) return catalogs.value.productos;
+    return catalogs.value.productos.filter((prod) => prod.categoria_id === categoriaId);
 }
 
 function productSearchText(producto) {
@@ -293,26 +302,7 @@ function selectedProductName(item) {
 function onCategoryChange(item) {
     item.producto_id = null;
     item.producto_query = '';
-}
-
-function resolveProveedorFromQuery() {
-    const query = String(form.value.proveedor_query || '').trim().toLowerCase();
-    if (!query) {
-        form.value.proveedor_id = null;
-        return;
-    }
-    const exact = catalogs.value.proveedores.find((p) => p.nombre.toLowerCase() === query);
-    if (exact) {
-        form.value.proveedor_id = exact.id;
-        return;
-    }
-    const matches = catalogs.value.proveedores.filter((p) => p.nombre.toLowerCase().includes(query));
-    if (matches.length === 1) {
-        form.value.proveedor_id = matches[0].id;
-        form.value.proveedor_query = matches[0].nombre;
-    } else {
-        form.value.proveedor_id = null;
-    }
+    item.unidad_medida = '';
 }
 
 function resolveProductFromQuery(item) {
@@ -366,7 +356,7 @@ function removeItem(index) {
 }
 
 async function save() {
-    if (!form.value.proveedor_id) {
+    if (!form.value.proveedor?.id) {
         formErrors.value = ['Seleccione un proveedor válido de la lista.'];
         return;
     }
@@ -375,7 +365,7 @@ async function save() {
     alerts.value = [];
     try {
         const payload = {
-            proveedor_id: form.value.proveedor_id,
+            proveedor_id: form.value.proveedor.id,
             fecha_compra: form.value.fecha_compra,
             observaciones: form.value.observaciones || null,
             items: form.value.items.filter((item) => item.producto_id).map((item) => ({
@@ -404,3 +394,24 @@ function formatDate(value) {
     return new Date(value).toLocaleDateString('es-GT');
 }
 </script>
+
+<style scoped>
+.compra-items-wrap {
+    overflow: visible;
+}
+
+.compra-items-table,
+.compra-items-table tbody,
+.compra-items-table tr,
+.compra-items-table td {
+    overflow: visible;
+}
+
+:deep(.multiselect) {
+    z-index: 1;
+}
+
+:deep(.multiselect__content-wrapper) {
+    z-index: 4000;
+}
+</style>

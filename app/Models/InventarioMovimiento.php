@@ -13,6 +13,8 @@ class InventarioMovimiento extends Model
         'producto_id',
         'compra_id',
         'compra_detalle_id',
+        'venta_id',
+        'venta_detalle_id',
         'tipo',
         'cantidad',
         'stock_anterior',
@@ -46,5 +48,15 @@ class InventarioMovimiento extends Model
     public function compraDetalle(): BelongsTo
     {
         return $this->belongsTo(CompraDetalle::class, 'compra_detalle_id');
+    }
+
+    public function venta(): BelongsTo
+    {
+        return $this->belongsTo(Venta::class, 'venta_id');
+    }
+
+    public function ventaDetalle(): BelongsTo
+    {
+        return $this->belongsTo(VentaDetalle::class, 'venta_detalle_id');
     }
 }

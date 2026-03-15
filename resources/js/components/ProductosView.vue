@@ -156,6 +156,10 @@
                                         class="form-control"
                                         autocomplete="off"
                                     >
+                                    <div v-if="form.codigo_barra" class="barcode-preview-box mt-2">
+                                        <svg ref="barcodeSvgRef" class="barcode-preview-svg" />
+                                        <div v-if="barcodePreviewError" class="form-text text-danger">{{ barcodePreviewError }}</div>
+                                    </div>
                                 </div>
 
                                 <div class="col-12">
@@ -276,7 +280,8 @@
 
 <script setup>
 import { Modal } from 'bootstrap';
-import { computed, onMounted, ref } from 'vue';
+import JsBarcode from 'jsbarcode';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import axios from '@/bootstrap';
 import ModalConfirm from '@/components/components_ui/ModalConfirm.vue';
@@ -296,6 +301,8 @@ const confirmMode = ref('toggle');
 
 const formModalRef = ref(null);
 const confirmModalRef = ref(null);
+const barcodeSvgRef = ref(null);
+const barcodePreviewError = ref('');
 
 let formModal = null;
 
@@ -315,10 +322,20 @@ const emptyForm = () => ({
 
 const form = ref(emptyForm());
 
+const normalizedBarcode = computed(() => String(form.value.codigo_barra || '').trim());
+
 onMounted(async () => {
     formModal = new Modal(formModalRef.value);
     await Promise.all([loadProductos(), loadCategorias(), loadProveedores(), loadMedidas()]);
 });
+
+watch(
+    () => form.value.codigo_barra,
+    async () => {
+        await nextTick();
+        renderBarcodePreview();
+    }
+);
 
 const confirmTitle = computed(() => (confirmMode.value === 'delete' ? 'Eliminar producto' : `${selected.value?.activo ? 'Desactivar' : 'Activar'} producto`));
 const confirmMessage = computed(() => {
@@ -361,6 +378,7 @@ async function loadMedidas() {
 function openCreate() {
     editingId.value = null;
     form.value = emptyForm();
+    barcodePreviewError.value = '';
     formErrors.value = [];
     formModal.show();
 }
@@ -380,8 +398,35 @@ function openEdit(prod) {
         dias_alerta_vencimiento:  prod.dias_alerta_vencimiento ?? 15,
         activo:                   prod.activo,
     };
+    barcodePreviewError.value = '';
     formErrors.value = [];
     formModal.show();
+}
+
+function renderBarcodePreview() {
+    const svg = barcodeSvgRef.value;
+    if (!svg) return;
+
+    const value = normalizedBarcode.value;
+    if (!value) {
+        barcodePreviewError.value = '';
+        svg.innerHTML = '';
+        return;
+    }
+
+    try {
+        JsBarcode(svg, value, {
+            format: 'CODE128',
+            displayValue: true,
+            fontSize: 12,
+            height: 44,
+            margin: 0,
+        });
+        barcodePreviewError.value = '';
+    } catch {
+        barcodePreviewError.value = 'No se pudo generar vista previa para este codigo.';
+        svg.innerHTML = '';
+    }
 }
 
 function openToggle(prod) {
@@ -463,3 +508,18 @@ function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('es-GT');
 }
 </script>
+
+<style scoped>
+.barcode-preview-box {
+    border: 1px dashed #cfd4dc;
+    border-radius: 0.5rem;
+    background: #fff;
+    padding: 0.5rem;
+}
+
+.barcode-preview-svg {
+    display: block;
+    width: 100%;
+    max-height: 64px;
+}
+</style>

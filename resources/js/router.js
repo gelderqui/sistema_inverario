@@ -8,6 +8,7 @@ import ClientesView from '@/components/ClientesView.vue';
 import ComprasView from '@/components/ComprasView.vue';
 import ConfiguracionesView from '@/components/ConfiguracionesView.vue';
 import DashboardView from '@/components/DashboardView.vue';
+import GastosView from '@/components/GastosView.vue';
 import InventarioView from '@/components/InventarioView.vue';
 import LoginView from '@/components_public/LoginView.vue';
 import ProveedoresView from '@/components/ProveedoresView.vue';
@@ -15,6 +16,7 @@ import ProductosView from '@/components/ProductosView.vue';
 import RolesView from '@/components/RolesView.vue';
 import UnauthorizedView from '@/components/UnauthorizedView.vue';
 import UsersView from '@/components/UsersView.vue';
+import VentasView from '@/components/VentasView.vue';
 
 const routes = [
     {
@@ -102,9 +104,25 @@ const routes = [
         },
     },
     {
+        path: '/ventas',
+        name: 'ventas',
+        component: VentasView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
         path: '/inventario',
         name: 'inventario',
         component: InventarioView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/gastos',
+        name: 'gastos',
+        component: GastosView,
         meta: {
             requiresAuth: true,
         },

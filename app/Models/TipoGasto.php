@@ -5,19 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Cliente extends Model
+class TipoGasto extends Model
 {
-    protected $table = 'clientes';
+    protected $table = 'tipos_gasto';
 
     protected $fillable = [
         'nombre',
-        'nit',
-        'email',
-        'telefono',
-        'direccion',
+        'descripcion',
         'activo',
-        'add_user',
-        'mod_user',
     ];
 
     protected function casts(): array
@@ -27,8 +22,8 @@ class Cliente extends Model
         ];
     }
 
-    public function ventas(): HasMany
+    public function gastos(): HasMany
     {
-        return $this->hasMany(Venta::class, 'cliente_id');
+        return $this->hasMany(Gasto::class, 'tipo_gasto_id');
     }
 }

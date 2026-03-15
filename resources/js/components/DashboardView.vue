@@ -1,90 +1,136 @@
 <template>
     <section class="d-grid gap-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <p class="text-uppercase small text-body-secondary mb-2">Fase 1 completada</p>
-                <h2 class="h3 mb-3">Base del sistema lista para crecer</h2>
-                <p class="text-body-secondary mb-0">
-                    Ya existe autenticación SPA con Sanctum, carga del usuario autenticado, shell Vue y control base de permisos.
-                </p>
-            </div>
+        <div v-if="loading" class="text-center py-5">
+            <p class="text-body-secondary mb-0">Cargando dashboard...</p>
         </div>
 
-        <div class="row g-4">
-            <div v-for="module in modules" :key="module.title" class="col-12 col-md-6 col-xl-3">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h3 class="h5 mb-0">{{ module.title }}</h3>
-                            <span class="badge" :class="module.enabled ? 'text-bg-success' : 'text-bg-secondary'">
-                                {{ module.enabled ? 'Listo' : 'Sin permiso' }}
-                            </span>
-                        </div>
-                        <p class="text-body-secondary mb-0">{{ module.description }}</p>
-                    </div>
+        <template v-else>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <p class="text-uppercase small text-body-secondary mb-2">Hoy</p>
+                    <h2 class="h3 mb-1">Resumen rápido del negocio</h2>
+                    <p class="text-body-secondary mb-0 small">
+                        {{ stats.scope === 'global' ? 'Vista global (admin)' : 'Vista personal (solo tus registros)' }}
+                    </p>
                 </div>
             </div>
-        </div>
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <h3 class="h5 mb-3">Contexto de sesión</h3>
-                <div class="row g-4">
-                    <div class="col-12 col-lg-6">
-                        <h4 class="h6 text-uppercase text-body-secondary">Roles</h4>
-                        <div class="d-flex flex-wrap gap-2">
-                            <span v-for="role in roleItems" :key="role.code" class="badge text-bg-dark">
-                                {{ role.name }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="col-12 col-lg-6">
-                        <h4 class="h6 text-uppercase text-body-secondary">Permisos efectivos</h4>
-                        <div class="d-flex flex-wrap gap-2">
-                            <span
-                                v-for="permission in authStore.user?.permissions ?? []"
-                                :key="permission.code"
-                                class="badge rounded-pill text-bg-light border"
-                            >
-                                {{ permission.code }}
-                            </span>
+            <div class="row g-4">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="small text-uppercase text-body-secondary mb-1">Ventas hoy</div>
+                            <div class="h4 mb-0">Q {{ money(stats.hoy.ventas) }}</div>
                         </div>
                     </div>
                 </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="small text-uppercase text-body-secondary mb-1">Compras hoy</div>
+                            <div class="h4 mb-0">Q {{ money(stats.hoy.compras) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="small text-uppercase text-body-secondary mb-1">Gastos hoy</div>
+                            <div class="h4 mb-0">Q {{ money(stats.hoy.gastos) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="small text-uppercase text-body-secondary mb-1">Ganancia estimada</div>
+                            <div class="h4 mb-0" :class="Number(stats.hoy.ganancia_estimada) < 0 ? 'text-danger' : 'text-success'">
+                                Q {{ money(stats.hoy.ganancia_estimada) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <div class="row g-4">
+                <div class="col-12 col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <h3 class="h5 mb-3">Productos</h3>
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <span>Productos con stock bajo</span>
+                                <strong>{{ stats.productos.bajo_stock }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <span>Productos por vencer</span>
+                                <strong>{{ stats.productos.por_vencer }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <h3 class="h5 mb-3">Ventas</h3>
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <span>Ventas del día</span>
+                                <strong>{{ stats.ventas.del_dia }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <span>Ventas del mes</span>
+                                <strong>Q {{ money(stats.ventas.del_mes_total) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <span>Ticket promedio</span>
+                                <strong>Q {{ money(stats.ventas.ticket_promedio) }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
     </section>
 </template>
+
 <script setup>
-import { computed } from 'vue';
+import { onMounted, ref } from 'vue';
 
-import { useAuthStore } from '@/stores/auth';
+import axios from '@/bootstrap';
 
-const authStore = useAuthStore();
+const loading = ref(true);
+const stats = ref({
+    scope: 'user',
+    hoy: {
+        ventas: 0,
+        compras: 0,
+        gastos: 0,
+        ganancia_estimada: 0,
+    },
+    productos: {
+        bajo_stock: 0,
+        por_vencer: 0,
+    },
+    ventas: {
+        del_dia: 0,
+        del_mes_total: 0,
+        ticket_promedio: 0,
+    },
+});
 
-const permissionCodes = computed(() => new Set((authStore.user?.permissions ?? []).map((permission) => permission.code)));
-const roleItems = computed(() => (authStore.user?.role ? [authStore.user.role] : []));
+onMounted(async () => {
+    try {
+        const { data } = await axios.get('/dashboard/get');
+        stats.value = data.data ?? stats.value;
+    } finally {
+        loading.value = false;
+    }
+});
 
-const modules = computed(() => [
-    {
-        title: 'Inventario',
-        description: 'Productos, existencias, ajustes y kardex.',
-        enabled: permissionCodes.value.has('inventario'),
-    },
-    {
-        title: 'Compras',
-        description: 'Proveedores, órdenes e ingresos de stock.',
-        enabled: permissionCodes.value.has('compras'),
-    },
-    {
-        title: 'POS',
-        description: 'Caja, ventas rápidas y recibos.',
-        enabled: permissionCodes.value.has('pos.access'),
-    },
-    {
-        title: 'Reportes',
-        description: 'Exportación a Excel y salidas PDF.',
-        enabled: permissionCodes.value.has('reports.view'),
-    },
-]);
+function money(value) {
+    return Number(value || 0).toFixed(2);
+}
 </script>
