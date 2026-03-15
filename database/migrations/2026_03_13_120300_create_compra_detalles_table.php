@@ -13,12 +13,12 @@ return new class extends Migration
             $table->unsignedBigInteger('compra_id');
             $table->unsignedBigInteger('producto_id');
             $table->decimal('cantidad', 12, 4);
+            $table->string('unidad_medida', 30)->nullable();
             $table->decimal('costo_unitario', 12, 4);
             $table->decimal('subtotal', 12, 4);
             $table->decimal('precio_venta_sugerido', 12, 4)->nullable();
             $table->decimal('precio_venta_aplicado', 12, 4)->nullable();
             $table->date('fecha_caducidad')->nullable();
-            $table->decimal('peso', 12, 4)->nullable();
             $table->decimal('cantidad_disponible', 12, 4);
             $table->timestamps();
 

@@ -13,12 +13,12 @@ class CompraDetalle extends Model
         'compra_id',
         'producto_id',
         'cantidad',
+        'unidad_medida',
         'costo_unitario',
         'subtotal',
         'precio_venta_sugerido',
         'precio_venta_aplicado',
         'fecha_caducidad',
-        'peso',
         'cantidad_disponible',
     ];
 
@@ -26,12 +26,12 @@ class CompraDetalle extends Model
     {
         return [
             'cantidad' => 'decimal:4',
+            'unidad_medida' => 'string',
             'costo_unitario' => 'decimal:4',
             'subtotal' => 'decimal:4',
             'precio_venta_sugerido' => 'decimal:4',
             'precio_venta_aplicado' => 'decimal:4',
             'fecha_caducidad' => 'date',
-            'peso' => 'decimal:4',
             'cantidad_disponible' => 'decimal:4',
         ];
     }

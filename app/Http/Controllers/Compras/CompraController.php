@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Compras;
 
 use App\Http\Controllers\Controller;
+use App\Models\Categoria;
 use App\Models\Compra;
 use App\Models\CompraDetalle;
 use App\Models\InventarioMovimiento;
@@ -40,6 +41,10 @@ class CompraController extends Controller
 
     public function catalogs(): JsonResponse
     {
+        $categorias = Categoria::query()
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
         $proveedores = Proveedor::query()
             ->where('activo', true)
             ->orderBy('nombre')
@@ -54,6 +59,7 @@ class CompraController extends Controller
                 'categoria_id',
                 'nombre',
                 'codigo_barra',
+                'palabras_clave',
                 'costo_promedio',
                 'precio_venta',
                 'stock_actual',
@@ -62,6 +68,7 @@ class CompraController extends Controller
 
         return response()->json([
             'data' => [
+                'categorias' => $categorias,
                 'proveedores' => $proveedores,
                 'productos' => $productos,
             ],
@@ -80,7 +87,6 @@ class CompraController extends Controller
             'items.*.costo_unitario' => ['required', 'numeric', 'gt:0'],
             'items.*.precio_venta' => ['nullable', 'numeric', 'gte:0'],
             'items.*.fecha_caducidad' => ['nullable', 'date'],
-            'items.*.peso' => ['nullable', 'numeric', 'gt:0'],
             'items.*.nota' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -108,6 +114,7 @@ class CompraController extends Controller
                 $producto = Producto::query()->lockForUpdate()->findOrFail($item['producto_id']);
 
                 $cantidad = toMoney($item['cantidad'], 4);
+                $unidadMedida = trim((string) ($producto->unidad_medida ?: 'unidad'));
                 $costoUnitario = toMoney($item['costo_unitario'], 4);
                 $subtotal = toMoney($cantidad * $costoUnitario, 4);
 
@@ -137,12 +144,12 @@ class CompraController extends Controller
                     'compra_id' => $compra->id,
                     'producto_id' => $producto->id,
                     'cantidad' => $cantidad,
+                    'unidad_medida' => $unidadMedida,
                     'costo_unitario' => $costoUnitario,
                     'subtotal' => $subtotal,
                     'precio_venta_sugerido' => $precioVentaSugerido,
                     'precio_venta_aplicado' => $precioVentaAplicado,
                     'fecha_caducidad' => $item['fecha_caducidad'] ?? null,
-                    'peso' => $item['peso'] ?? null,
                     'cantidad_disponible' => $cantidad,
                 ]);
 
@@ -165,6 +172,7 @@ class CompraController extends Controller
                     'costo_promedio' => $costoPromedioNuevo,
                     'stock_actual' => $stockNuevo,
                     'precio_venta' => $precioVentaAplicado,
+                    'unidad_medida' => $unidadMedida,
                     'mod_user' => getUserId(),
                 ]);
 

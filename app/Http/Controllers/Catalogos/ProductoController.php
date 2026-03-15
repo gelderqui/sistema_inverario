@@ -51,7 +51,7 @@ class ProductoController extends Controller
             'costo_promedio'=> ['nullable', 'numeric', 'gte:0'],
             'stock_actual'  => ['nullable', 'numeric'],
             'stock_minimo'  => ['nullable', 'numeric', 'gte:0'],
-            'unidad_medida' => ['nullable', 'string', 'max:30'],
+            'unidad_medida' => ['required', Rule::exists('medidas', 'codigo')->where(fn ($q) => $q->where('activo', true))],
             'peso_referencial' => ['nullable', 'numeric', 'gte:0'],
             'activo'        => ['sometimes', 'boolean'],
         ]);
@@ -62,7 +62,7 @@ class ProductoController extends Controller
             'costo_promedio' => $validated['costo_promedio'] ?? 0,
             'stock_actual' => $validated['stock_actual'] ?? 0,
             'stock_minimo' => $validated['stock_minimo'] ?? 0,
-            'unidad_medida' => $validated['unidad_medida'] ?? 'unidad',
+            'unidad_medida' => $validated['unidad_medida'],
             'activo'   => (bool) ($validated['activo'] ?? true),
             'add_user' => $request->user()->id,
         ]);
@@ -88,7 +88,7 @@ class ProductoController extends Controller
             'costo_promedio'=> ['nullable', 'numeric', 'gte:0'],
             'stock_actual'  => ['nullable', 'numeric'],
             'stock_minimo'  => ['nullable', 'numeric', 'gte:0'],
-            'unidad_medida' => ['nullable', 'string', 'max:30'],
+            'unidad_medida' => ['required', Rule::exists('medidas', 'codigo')->where(fn ($q) => $q->where('activo', true))],
             'peso_referencial' => ['nullable', 'numeric', 'gte:0'],
             'activo'        => ['required', 'boolean'],
         ]);
@@ -99,7 +99,7 @@ class ProductoController extends Controller
             'costo_promedio' => $validated['costo_promedio'] ?? $producto->costo_promedio,
             'stock_actual' => $validated['stock_actual'] ?? $producto->stock_actual,
             'stock_minimo' => $validated['stock_minimo'] ?? $producto->stock_minimo,
-            'unidad_medida' => $validated['unidad_medida'] ?? $producto->unidad_medida,
+            'unidad_medida' => $validated['unidad_medida'],
             'activo'   => (bool) $validated['activo'],
             'mod_user' => $request->user()->id,
         ]);

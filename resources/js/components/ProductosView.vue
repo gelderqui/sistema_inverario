@@ -182,6 +182,19 @@
                                     <div class="form-text">Separadas por comas para facilitar la busqueda.</div>
                                 </div>
 
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label fw-semibold" for="p-medida">Medida *</label>
+                                    <select id="p-medida" v-model="form.unidad_medida" class="form-select" required>
+                                        <option
+                                            v-for="medida in medidasActivas"
+                                            :key="medida.id"
+                                            :value="medida.codigo"
+                                        >
+                                            {{ medida.nombre }}
+                                        </option>
+                                    </select>
+                                </div>
+
                                 <div class="col-12">
                                     <div class="form-check form-switch">
                                         <input
@@ -230,6 +243,7 @@ import ModalConfirm from '@/components/components_ui/ModalConfirm.vue';
 const productos = ref([]);
 const categoriasActivas = ref([]);
 const proveedoresActivos = ref([]);
+const medidasActivas = ref([]);
 const loading = ref(true);
 const saving = ref(false);
 const toggling = ref(false);
@@ -251,6 +265,7 @@ const emptyForm = () => ({
     codigo_barra: '',
     detalle: '',
     palabras_clave: '',
+    unidad_medida: 'unidad',
     activo: true,
 });
 
@@ -310,6 +325,7 @@ function openEdit(prod) {
         codigo_barra: prod.codigo_barra ?? '',
         detalle: prod.detalle ?? '',
         palabras_clave: prod.palabras_clave ?? '',
+        unidad_medida: prod.unidad_medida ?? 'unidad',
         activo: prod.activo,
     };
     formErrors.value = [];

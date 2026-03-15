@@ -15,6 +15,8 @@ return new class extends Migration
             $table->text('value')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();
+            $table->unsignedBigInteger('last_modified_by_user_id')->nullable();
+            $table->string('last_modified_by_user_name', 255)->nullable();
         });
     }
 

@@ -86,34 +86,57 @@
                                 <table class="table table-sm compra-items-table">
                                     <thead>
                                         <tr>
+                                            <th style="min-width: 150px;">Categoria</th>
                                             <th style="min-width: 220px;">Producto</th>
                                             <th>Cantidad</th>
+                                            <th>Medida</th>
                                             <th>Costo unitario</th>
                                             <th>Precio venta</th>
                                             <th>Caducidad</th>
-                                            <th>Peso</th>
                                             <th>Subtotal</th>
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-if="!form.items.length">
-                                            <td colspan="8" class="text-center text-body-secondary py-3">Agrega al menos un producto.</td>
+                                            <td colspan="9" class="text-center text-body-secondary py-3">Agrega al menos un producto.</td>
                                         </tr>
                                         <tr v-for="(item, idx) in form.items" :key="idx">
                                             <td>
-                                                <select v-model="item.producto_id" class="form-select form-select-sm">
-                                                    <option :value="null">Seleccione</option>
-                                                    <option v-for="prod in catalogs.productos" :key="prod.id" :value="prod.id">
-                                                        {{ prod.nombre }}
+                                                <select v-model="item.categoria_id" class="form-select form-select-sm" @change="onCategoryChange(item)">
+                                                    <option :value="null">Todas</option>
+                                                    <option v-for="cat in catalogs.categorias" :key="cat.id" :value="cat.id">
+                                                        {{ cat.nombre }}
                                                     </option>
                                                 </select>
                                             </td>
+                                            <td>
+                                                <input
+                                                    :id="`producto-search-${idx}`"
+                                                    v-model="item.producto_query"
+                                                    :list="`productos-list-${idx}`"
+                                                    type="text"
+                                                    class="form-control form-control-sm"
+                                                    placeholder="Nombre, codigo barra o palabra clave"
+                                                    @input="resolveProductFromQuery(item)"
+                                                    @blur="resolveProductFromQuery(item)"
+                                                >
+                                                <datalist :id="`productos-list-${idx}`">
+                                                    <option
+                                                        v-for="prod in filteredProducts(item)"
+                                                        :key="prod.id"
+                                                        :value="productSearchText(prod)"
+                                                    />
+                                                </datalist>
+                                                <div class="form-text compra-product-hint">
+                                                    {{ selectedProductName(item) || 'Selecciona o escribe para buscar producto.' }}
+                                                </div>
+                                            </td>
                                             <td><input v-model.number="item.cantidad" type="number" step="0.0001" min="0.0001" class="form-control form-control-sm"></td>
+                                            <td><input :value="item.unidad_medida || 'unidad'" type="text" class="form-control form-control-sm" readonly></td>
                                             <td><input v-model.number="item.costo_unitario" type="number" step="0.0001" min="0.0001" class="form-control form-control-sm"></td>
                                             <td><input v-model.number="item.precio_venta" type="number" step="0.0001" min="0" class="form-control form-control-sm"></td>
                                             <td><input v-model="item.fecha_caducidad" type="date" class="form-control form-control-sm"></td>
-                                            <td><input v-model.number="item.peso" type="number" step="0.0001" min="0" class="form-control form-control-sm"></td>
                                             <td class="fw-semibold">Q {{ itemSubtotal(item).toFixed(2) }}</td>
                                             <td>
                                                 <button type="button" class="btn btn-sm btn-action-brand" :disabled="saving" @click="removeItem(idx)">
@@ -162,7 +185,7 @@ import axios from '@/bootstrap';
 import FormErrors from '@/components/FormErrors.vue';
 
 const compras = ref([]);
-const catalogs = ref({ proveedores: [], productos: [] });
+const catalogs = ref({ categorias: [], proveedores: [], productos: [] });
 const loading = ref(true);
 const saving = ref(false);
 const formErrors = ref([]);
@@ -172,12 +195,14 @@ const formModalRef = ref(null);
 let formModal = null;
 
 const emptyItem = () => ({
+    categoria_id: null,
     producto_id: null,
+    producto_query: '',
     cantidad: 1,
+    unidad_medida: 'unidad',
     costo_unitario: 0,
     precio_venta: 0,
     fecha_caducidad: null,
-    peso: null,
 });
 
 const emptyForm = () => ({
@@ -227,6 +252,71 @@ function addItem() {
     form.value.items.push(emptyItem());
 }
 
+function filteredProducts(item) {
+    if (!item.categoria_id) return catalogs.value.productos;
+    return catalogs.value.productos.filter((prod) => prod.categoria_id === item.categoria_id);
+}
+
+function productSearchText(producto) {
+    const parts = [producto.nombre];
+
+    if (producto.codigo_barra) parts.push(`Barra: ${producto.codigo_barra}`);
+    if (producto.palabras_clave) parts.push(`Clave: ${producto.palabras_clave}`);
+
+    return parts.join(' | ');
+}
+
+function selectedProductName(item) {
+    const producto = catalogs.value.productos.find((prod) => prod.id === item.producto_id);
+    return producto ? `Producto seleccionado: ${producto.nombre}` : '';
+}
+
+function onCategoryChange(item) {
+    item.producto_id = null;
+    item.producto_query = '';
+}
+
+function resolveProductFromQuery(item) {
+    const query = String(item.producto_query || '').trim().toLowerCase();
+    const productos = filteredProducts(item);
+
+    if (!query) {
+        item.producto_id = null;
+        return;
+    }
+
+    const exactByCode = productos.find((prod) => (prod.codigo_barra || '').toLowerCase() === query);
+    if (exactByCode) {
+        item.producto_id = exactByCode.id;
+        syncItemMeasure(item);
+        return;
+    }
+
+    const matches = productos.filter((prod) => {
+        const nombre = (prod.nombre || '').toLowerCase();
+        const codigoBarra = (prod.codigo_barra || '').toLowerCase();
+        const palabrasClave = (prod.palabras_clave || '').toLowerCase();
+        const searchable = productSearchText(prod).toLowerCase();
+
+        return nombre.includes(query)
+            || codigoBarra.includes(query)
+            || palabrasClave.includes(query)
+            || searchable.includes(query);
+    });
+
+    if (matches.length === 1) {
+        item.producto_id = matches[0].id;
+        syncItemMeasure(item);
+    }
+}
+
+function syncItemMeasure(item) {
+    const producto = catalogs.value.productos.find((prod) => prod.id === item.producto_id);
+    if (!producto) return;
+
+    item.unidad_medida = producto.unidad_medida || item.unidad_medida || 'unidad';
+}
+
 function removeItem(index) {
     form.value.items.splice(index, 1);
 }
@@ -246,7 +336,6 @@ async function save() {
                 costo_unitario: Number(item.costo_unitario || 0),
                 precio_venta: item.precio_venta === '' || item.precio_venta === null ? null : Number(item.precio_venta),
                 fecha_caducidad: item.fecha_caducidad || null,
-                peso: item.peso === '' || item.peso === null ? null : Number(item.peso),
             })),
         };
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Catalogos\CategoriaController;
 use App\Http\Controllers\Catalogos\ClienteController;
+use App\Http\Controllers\Catalogos\MedidaController;
 use App\Http\Controllers\Catalogos\ProveedorController;
 use App\Http\Controllers\Catalogos\ProductoController;
 use App\Http\Controllers\Compras\CompraController;
@@ -92,6 +93,10 @@ Route::prefix('api')->group(function (): void {
                 Route::put('/update/{cliente}', [ClienteController::class, 'update']);
                 Route::patch('/toggle/{cliente}', [ClienteController::class, 'toggle']);
                 Route::delete('/destroy/{cliente}', [ClienteController::class, 'destroy']);
+            });
+
+            Route::prefix('medidas')->group(function (): void {
+                Route::get('/get', [MedidaController::class, 'index']);
             });
         });
 

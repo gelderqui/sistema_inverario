@@ -14,3 +14,18 @@
     margin: 0;
     padding-left: 1rem;
 }
+
+.compra-items-table .form-control,
+.compra-items-table .form-select {
+    border-color: #d6e2ff;
+}
+
+.compra-items-table .form-control:focus,
+.compra-items-table .form-select:focus {
+    border-color: #93b4ff;
+    box-shadow: 0 0 0 0.15rem rgba(26, 58, 108, 0.15);
+}
+
+.compra-product-hint {
+    min-height: 18px;
+}
