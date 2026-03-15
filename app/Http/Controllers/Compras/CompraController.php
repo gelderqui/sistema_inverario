@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CompraController extends Controller
 {
@@ -108,7 +109,7 @@ class CompraController extends Controller
                 'numero' => $numeroCompra,
                 'proveedor_id' => $validated['proveedor_id'],
                 'fecha_compra' => $validated['fecha_compra'],
-                'estado' => 'registrada',
+                'estado' => 'activo',
                 'total' => 0,
                 'observaciones' => $validated['observaciones'] ?? null,
                 'add_user' => getUserId(),
@@ -199,18 +200,6 @@ class CompraController extends Controller
                 'mod_user' => getUserId(),
             ]);
 
-            if (getUserId()) {
-                registrarMovimientoCajaAutomatico(
-                    getUserId(),
-                    'compra',
-                    -1 * (float) $compra->total,
-                    'Salida por compra '.$compra->numero,
-                    $compra->fecha_compra?->toDateString(),
-                    'compra',
-                    $compra->id
-                );
-            }
-
             return [
                 'compra' => $compra->load(['proveedor:id,nombre', 'detalles.producto:id,nombre']),
                 'alerts' => $alerts,
@@ -222,5 +211,89 @@ class CompraController extends Controller
             'data' => $result['compra'],
             'alerts' => $result['alerts'],
         ], 201);
+    }
+
+    public function anular(Request $request, Compra $compra): JsonResponse
+    {
+        $userId = (int) $request->user()->id;
+
+        if ($compra->estado !== 'activo') {
+            return response()->json([
+                'message' => 'Solo se pueden anular compras activas.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($compra, $userId): void {
+            $compra->loadMissing('detalles');
+
+            foreach ($compra->detalles as $detalle) {
+                $producto = Producto::query()->lockForUpdate()->findOrFail($detalle->producto_id);
+                $lote = InventarioLote::query()
+                    ->where('compra_detalle_id', $detalle->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $cantidadDetalle = toMoney($detalle->cantidad, 4);
+
+                if (! $lote) {
+                    throw ValidationException::withMessages([
+                        'compra' => ["No se encontro lote para el detalle {$detalle->id}; no se puede anular la compra."],
+                    ]);
+                }
+
+                $disponibleLote = toMoney($lote->cantidad_disponible, 4);
+                if ($disponibleLote + 0.0001 < $cantidadDetalle) {
+                    throw ValidationException::withMessages([
+                        'compra' => [
+                            "No se puede anular {$compra->numero}: parte del lote de {$producto->nombre} ya fue consumido.",
+                        ],
+                    ]);
+                }
+
+                $stockAnterior = (float) $producto->stock_actual;
+                if ($stockAnterior + 0.0001 < $cantidadDetalle) {
+                    throw ValidationException::withMessages([
+                        'compra' => [
+                            "Stock insuficiente para revertir {$producto->nombre}.",
+                        ],
+                    ]);
+                }
+
+                $stockNuevo = toMoney($stockAnterior - $cantidadDetalle, 4);
+
+                $lote->update([
+                    'cantidad_disponible' => toMoney($disponibleLote - $cantidadDetalle, 4),
+                ]);
+
+                $producto->update([
+                    'stock_actual' => $stockNuevo,
+                    'mod_user' => $userId,
+                ]);
+
+                InventarioMovimiento::query()->create([
+                    'producto_id' => $producto->id,
+                    'compra_id' => $compra->id,
+                    'compra_detalle_id' => $detalle->id,
+                    'tipo' => 'anulacion_compra',
+                    'cantidad' => toMoney(-1 * $cantidadDetalle, 4),
+                    'stock_anterior' => $stockAnterior,
+                    'stock_nuevo' => $stockNuevo,
+                    'costo_unitario' => $detalle->costo_unitario,
+                    'referencia' => $compra->numero,
+                    'nota' => 'Anulacion de compra',
+                    'add_user' => $userId,
+                ]);
+            }
+
+            $compra->update([
+                'estado' => 'anulada',
+                'mod_user' => $userId,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Compra anulada correctamente.',
+            'data' => $compra->fresh(['proveedor:id,nombre'])->loadCount('detalles'),
+        ]);
     }
 }

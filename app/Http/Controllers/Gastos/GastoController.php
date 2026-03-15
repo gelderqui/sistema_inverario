@@ -45,7 +45,7 @@ class GastoController extends Controller
         return response()->json([
             'data' => [
                 'tipos_gasto' => $tipos,
-                'metodos_pago' => ['efectivo', 'transferencia', 'tarjeta', 'mixto'],
+                'metodos_pago' => ['caja', 'caja_chica', 'banco'],
             ],
         ]);
     }
@@ -105,7 +105,7 @@ class GastoController extends Controller
             'descripcion' => ['required', 'string', 'max:255'],
             'monto' => ['required', 'numeric', 'gt:0'],
             'fecha' => ['required', 'date'],
-            'metodo_pago' => ['required', Rule::in(['efectivo', 'transferencia', 'tarjeta', 'mixto'])],
+            'metodo_pago' => ['required', Rule::in(['caja', 'caja_chica', 'banco'])],
         ]);
 
         $gasto = Gasto::query()->create([
@@ -114,7 +114,7 @@ class GastoController extends Controller
             'usuario_id' => $request->user()->id,
         ]);
 
-        if ($gasto->metodo_pago === 'efectivo') {
+        if ($gasto->metodo_pago === 'caja') {
             registrarMovimientoCajaAutomatico(
                 (int) $request->user()->id,
                 'gasto',

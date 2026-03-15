@@ -75,24 +75,47 @@
                             <th>Venta</th>
                             <th>Fecha</th>
                             <th>Usuario</th>
+                            <th>Estado</th>
                             <th>Total</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="!devoluciones.length">
-                            <td colspan="5" class="text-center text-body-secondary py-3">Sin devoluciones registradas.</td>
+                            <td colspan="7" class="text-center text-body-secondary py-3">Sin devoluciones registradas.</td>
                         </tr>
                         <tr v-for="d in devoluciones" :key="d.id">
                             <td>#{{ d.id }}</td>
                             <td>{{ d.venta?.numero || '-' }}</td>
                             <td>{{ fmtDate(d.fecha) }}</td>
                             <td>{{ d.usuario?.name || '-' }}</td>
+                            <td>
+                                <span :class="['badge text-uppercase', d.estado === 'anulada' ? 'text-bg-danger' : 'text-bg-success']">
+                                    {{ d.estado }}
+                                </span>
+                            </td>
                             <td class="fw-semibold">Q {{ Number(d.total || 0).toFixed(2) }}</td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-brand" title="Imprimir recibo" @click="openTicket(d.id)">
+                                    <FontAwesomeIcon icon="fa-solid fa-print" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger ms-2"
+                                    :disabled="saving || d.estado !== 'activo'"
+                                    title="Anular devolucion"
+                                    @click="anularDevolucion(d)"
+                                >
+                                    Anular
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <TicketReceiptModal ref="receiptModalRef" title="Recibo de devolucion" />
     </div>
 </template>
 
@@ -100,6 +123,7 @@
 import { computed, onMounted, ref } from 'vue';
 import axios from '@/bootstrap';
 import FormErrors from '@/components/FormErrors.vue';
+import TicketReceiptModal from '@/components/TicketReceiptModal.vue';
 
 const loading = ref(false);
 const saving = ref(false);
@@ -107,6 +131,7 @@ const errors = ref([]);
 const ventasCatalogo = ref([]);
 const devoluciones = ref([]);
 const selectedVentaId = ref(null);
+const receiptModalRef = ref(null);
 
 const form = ref({
     fecha: new Date().toISOString().slice(0, 10),
@@ -158,7 +183,7 @@ async function guardar() {
             return;
         }
 
-        await axios.post('/ventas/devoluciones/store', {
+        const { data } = await axios.post('/ventas/devoluciones/store', {
             venta_id: Number(selectedVentaId.value),
             fecha: form.value.fecha,
             items,
@@ -167,6 +192,9 @@ async function guardar() {
         selectedVentaId.value = null;
         form.value.items = [];
         await reloadAll();
+
+        const ticketUrl = `/ventas/devoluciones/${data.data.id}/ticket`;
+        receiptModalRef.value?.open(ticketUrl);
     } catch (error) {
         const backend = error.response?.data?.errors;
         errors.value = backend ? Object.values(backend).flat() : [error.response?.data?.message ?? 'No se pudo guardar la devolucion.'];
@@ -178,5 +206,29 @@ async function guardar() {
 function fmtDate(value) {
     if (!value) return '-';
     return new Date(value).toLocaleString('es-GT');
+}
+
+function openTicket(id) {
+    if (!id) return;
+    receiptModalRef.value?.open(`/ventas/devoluciones/${id}/ticket`);
+}
+
+async function anularDevolucion(item) {
+    if (!item?.id || item.estado !== 'activo') return;
+
+    const ok = window.confirm(`Se anulara la devolucion #${item.id}. Esta accion revierte inventario. Deseas continuar?`);
+    if (!ok) return;
+
+    saving.value = true;
+    errors.value = [];
+    try {
+        await axios.patch(`/ventas/devoluciones/anular/${item.id}`);
+        await reloadAll();
+    } catch (error) {
+        const backend = error.response?.data?.errors;
+        errors.value = backend ? Object.values(backend).flat() : [error.response?.data?.message ?? 'No se pudo anular la devolucion.'];
+    } finally {
+        saving.value = false;
+    }
 }
 </script>

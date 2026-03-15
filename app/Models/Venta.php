@@ -14,6 +14,7 @@ class Venta extends Model
         'numero',
         'cliente_id',
         'fecha_venta',
+        'estado',
         'metodo_pago',
         'subtotal',
         'descuento',
@@ -29,6 +30,7 @@ class Venta extends Model
     {
         return [
             'fecha_venta' => 'date',
+            'estado' => 'string',
             'subtotal' => 'decimal:4',
             'descuento' => 'decimal:4',
             'total' => 'decimal:4',

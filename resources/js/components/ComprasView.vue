@@ -24,11 +24,12 @@
                             <th>Total</th>
                             <th>Estado</th>
                             <th>Creado</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="!compras.length">
-                            <td colspan="7" class="text-center text-body-secondary py-4">Sin compras registradas</td>
+                            <td colspan="8" class="text-center text-body-secondary py-4">Sin compras registradas</td>
                         </tr>
                         <tr v-for="compra in compras" :key="compra.id">
                             <td><code>{{ compra.numero }}</code></td>
@@ -36,8 +37,22 @@
                             <td>{{ formatDate(compra.fecha_compra) }}</td>
                             <td>{{ compra.detalles_count ?? 0 }}</td>
                             <td class="fw-semibold">Q {{ Number(compra.total ?? 0).toFixed(2) }}</td>
-                            <td><span class="badge text-bg-success text-uppercase">{{ compra.estado }}</span></td>
+                            <td>
+                                <span :class="['badge text-uppercase', compra.estado === 'anulada' ? 'text-bg-danger' : 'text-bg-success']">
+                                    {{ compra.estado }}
+                                </span>
+                            </td>
                             <td class="text-body-secondary small">{{ formatDate(compra.created_at) }}</td>
+                            <td class="text-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    :disabled="saving || compra.estado !== 'activo'"
+                                    @click="anularCompra(compra)"
+                                >
+                                    Anular
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -392,6 +407,31 @@ async function save() {
 function formatDate(value) {
     if (!value) return '-';
     return new Date(value).toLocaleDateString('es-GT');
+}
+
+async function anularCompra(compra) {
+    if (!compra?.id || compra.estado !== 'activo') return;
+
+    const ok = window.confirm(`Se anulara la compra ${compra.numero}. Esta accion revierte inventario. Deseas continuar?`);
+    if (!ok) return;
+
+    saving.value = true;
+    formErrors.value = [];
+    try {
+        const { data } = await axios.patch(`/compras/anular/${compra.id}`);
+        const idx = compras.value.findIndex((row) => row.id === compra.id);
+        if (idx >= 0) {
+            compras.value[idx] = {
+                ...compras.value[idx],
+                ...data.data,
+            };
+        }
+    } catch (error) {
+        const backend = error.response?.data?.errors;
+        formErrors.value = backend ? Object.values(backend).flat() : [error.response?.data?.message ?? 'No se pudo anular la compra.'];
+    } finally {
+        saving.value = false;
+    }
 }
 </script>
 

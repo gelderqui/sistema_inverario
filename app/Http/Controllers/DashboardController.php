@@ -22,8 +22,8 @@ class DashboardController extends Controller
         $inicioMes = Carbon::today()->startOfMonth();
         $finMes = Carbon::today()->endOfMonth();
 
-        $ventasQuery = Venta::query();
-        $comprasQuery = Compra::query();
+        $ventasQuery = Venta::query()->where('estado', 'activo');
+        $comprasQuery = Compra::query()->where('estado', 'activo');
         $gastosQuery = Gasto::query();
 
         if (! $isAdmin && $user) {

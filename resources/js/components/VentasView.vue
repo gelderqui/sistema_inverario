@@ -20,6 +20,7 @@
                             <th>Numero</th>
                             <th>Cliente</th>
                             <th>Fecha</th>
+                            <th>Estado</th>
                             <th>Items</th>
                             <th>Total</th>
                             <th>Metodo</th>
@@ -28,12 +29,17 @@
                     </thead>
                     <tbody>
                         <tr v-if="!ventas.length">
-                            <td colspan="7" class="text-center text-body-secondary py-4">Sin ventas registradas</td>
+                            <td colspan="8" class="text-center text-body-secondary py-4">Sin ventas registradas</td>
                         </tr>
                         <tr v-for="venta in ventas" :key="venta.id">
                             <td><code>{{ venta.numero }}</code></td>
                             <td>{{ venta.cliente?.nombre ?? 'Consumidor final' }}</td>
                             <td>{{ formatDate(venta.fecha_venta) }}</td>
+                            <td>
+                                <span :class="['badge text-uppercase', venta.estado === 'anulada' ? 'text-bg-danger' : 'text-bg-success']">
+                                    {{ venta.estado }}
+                                </span>
+                            </td>
                             <td>{{ venta.detalles_count ?? 0 }}</td>
                             <td class="fw-semibold">Q {{ Number(venta.total ?? 0).toFixed(2) }}</td>
                             <td class="text-uppercase">{{ venta.metodo_pago }}</td>
@@ -204,6 +210,8 @@
                 </div>
             </div>
         </div>
+
+        <TicketReceiptModal ref="receiptModalRef" title="Recibo de venta" />
     </div>
 </template>
 
@@ -215,6 +223,7 @@ import 'vue-multiselect/dist/vue-multiselect.css';
 
 import axios from '@/bootstrap';
 import FormErrors from '@/components/FormErrors.vue';
+import TicketReceiptModal from '@/components/TicketReceiptModal.vue';
 
 const ventas = ref([]);
 const catalogs = ref({ clientes: [], productos: [], metodos_pago: [] });
@@ -231,6 +240,7 @@ const finder = ref({
 });
 
 const formModalRef = ref(null);
+const receiptModalRef = ref(null);
 let formModal = null;
 
 const emptyForm = () => ({
@@ -404,6 +414,9 @@ async function save() {
         const { data } = await axios.post('/ventas/store', payload);
         ventas.value.unshift(data.data);
         formModal.hide();
+
+        const ticketUrl = `/ventas/${data.data.id}/ticket`;
+        receiptModalRef.value?.open(ticketUrl);
     } catch (error) {
         const errors = error.response?.data?.errors;
         formErrors.value = errors ? Object.values(errors).flat() : [error.response?.data?.message ?? 'No se pudo registrar la venta.'];

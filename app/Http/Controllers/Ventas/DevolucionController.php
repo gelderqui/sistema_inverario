@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ventas;
 
 use App\Http\Controllers\Controller;
+use App\Models\Configuracion;
 use App\Models\DetalleDevolucion;
 use App\Models\Devolucion;
 use App\Models\InventarioLote;
@@ -10,32 +11,48 @@ use App\Models\InventarioMovimiento;
 use App\Models\Producto;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class DevolucionController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $desde = $request->filled('desde')
+            ? Carbon::parse((string) $request->input('desde'))->toDateString()
+            : Carbon::today()->toDateString();
+        $hasta = $request->filled('hasta')
+            ? Carbon::parse((string) $request->input('hasta'))->toDateString()
+            : $desde;
+
         $items = Devolucion::query()
             ->with([
                 'venta:id,numero,fecha_venta',
                 'usuario:id,name',
                 'detalles.producto:id,nombre',
             ])
+            ->where('usuario_id', (int) $request->user()->id)
+            ->whereBetween('fecha', [$desde, $hasta])
             ->orderByDesc('fecha')
             ->orderByDesc('id')
-            ->get(['id', 'venta_id', 'usuario_id', 'fecha', 'total', 'created_at']);
+            ->get(['id', 'venta_id', 'usuario_id', 'fecha', 'estado', 'total', 'created_at']);
 
         return response()->json([
             'data' => $items,
+            'meta' => [
+                'desde' => $desde,
+                'hasta' => $hasta,
+            ],
         ]);
     }
 
-    public function catalogs(): JsonResponse
+    public function catalogs(Request $request): JsonResponse
     {
         $ventas = Venta::query()
             ->with([
@@ -43,6 +60,8 @@ class DevolucionController extends Controller
                 'detalles:id,venta_id,producto_id,cantidad,precio_unitario,subtotal',
                 'detalles.producto:id,nombre,stock_actual,costo_promedio,control_vencimiento',
             ])
+            ->where('add_user', (int) $request->user()->id)
+            ->where('estado', 'activo')
             ->orderByDesc('fecha_venta')
             ->orderByDesc('id')
             ->limit(120)
@@ -53,6 +72,7 @@ class DevolucionController extends Controller
             $devueltoByDetalle = DetalleDevolucion::query()
                 ->select('venta_detalle_id', DB::raw('SUM(cantidad) as total_devuelto'))
                 ->whereIn('venta_detalle_id', $detalleIds)
+                ->whereHas('devolucion', fn ($q) => $q->where('estado', 'activo'))
                 ->groupBy('venta_detalle_id')
                 ->pluck('total_devuelto', 'venta_detalle_id');
 
@@ -90,12 +110,19 @@ class DevolucionController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($validated['venta_id']);
 
+            if ($venta->estado !== 'activo') {
+                throw ValidationException::withMessages([
+                    'venta_id' => ['Solo se permiten devoluciones sobre ventas activas.'],
+                ]);
+            }
+
             $detallesVenta = $venta->detalles->keyBy('id');
 
             $devolucion = Devolucion::query()->create([
                 'venta_id' => $venta->id,
                 'usuario_id' => $userId,
                 'fecha' => $validated['fecha'],
+                'estado' => 'activo',
                 'total' => 0,
             ]);
 
@@ -112,6 +139,7 @@ class DevolucionController extends Controller
 
                 $yaDevuelto = (float) DetalleDevolucion::query()
                     ->where('venta_detalle_id', $detalleVenta->id)
+                    ->whereHas('devolucion', fn ($q) => $q->where('estado', 'activo'))
                     ->sum('cantidad');
 
                 $cantidad = toMoney($item['cantidad'], 4);
@@ -189,5 +217,138 @@ class DevolucionController extends Controller
                 'detalles.producto:id,nombre',
             ]),
         ], 201);
+    }
+
+    public function anular(Request $request, Devolucion $devolucion): JsonResponse
+    {
+        if ((int) $devolucion->usuario_id !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'No autorizado para anular esta devolucion.',
+            ], 403);
+        }
+
+        if ($devolucion->estado !== 'activo') {
+            return response()->json([
+                'message' => 'Solo se pueden anular devoluciones activas.',
+            ], 422);
+        }
+
+        $userId = (int) $request->user()->id;
+
+        DB::transaction(function () use ($devolucion, $userId): void {
+            $devolucion = Devolucion::query()
+                ->with(['detalles:id,devolucion_id,venta_detalle_id,producto_id,cantidad'])
+                ->lockForUpdate()
+                ->findOrFail($devolucion->id);
+
+            foreach ($devolucion->detalles as $detalle) {
+                $producto = Producto::query()->lockForUpdate()->findOrFail($detalle->producto_id);
+                $cantidad = toMoney($detalle->cantidad, 4);
+                $stockAnterior = (float) $producto->stock_actual;
+
+                if ($stockAnterior + 0.0001 < $cantidad) {
+                    throw ValidationException::withMessages([
+                        'devolucion' => [
+                            "Stock insuficiente para anular devolucion de {$producto->nombre}.",
+                        ],
+                    ]);
+                }
+
+                $restante = $cantidad;
+                $lotes = InventarioLote::query()
+                    ->where('producto_id', $producto->id)
+                    ->where('cantidad_disponible', '>', 0)
+                    ->orderBy('fecha_entrada')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($lotes as $lote) {
+                    if ($restante <= 0) {
+                        break;
+                    }
+
+                    $disponible = (float) $lote->cantidad_disponible;
+                    if ($disponible <= 0) {
+                        continue;
+                    }
+
+                    $usar = min($restante, $disponible);
+                    $lote->update([
+                        'cantidad_disponible' => toMoney($disponible - $usar, 4),
+                    ]);
+
+                    $restante = toMoney($restante - $usar, 4);
+                }
+
+                if ($restante > 0.0001) {
+                    throw ValidationException::withMessages([
+                        'devolucion' => [
+                            "No existen lotes suficientes para anular devolucion de {$producto->nombre}.",
+                        ],
+                    ]);
+                }
+
+                $stockNuevo = toMoney($stockAnterior - $cantidad, 4);
+                $producto->update([
+                    'stock_actual' => $stockNuevo,
+                    'mod_user' => $userId,
+                ]);
+
+                InventarioMovimiento::query()->create([
+                    'producto_id' => $producto->id,
+                    'venta_id' => $devolucion->venta_id,
+                    'venta_detalle_id' => $detalle->venta_detalle_id,
+                    'tipo' => 'anulacion_devolucion',
+                    'cantidad' => toMoney(-1 * $cantidad, 4),
+                    'stock_anterior' => $stockAnterior,
+                    'stock_nuevo' => $stockNuevo,
+                    'costo_unitario' => $producto->costo_promedio,
+                    'referencia' => 'DEV-'.$devolucion->id,
+                    'nota' => 'Anulacion de devolucion',
+                    'add_user' => $userId,
+                ]);
+            }
+
+            $devolucion->update([
+                'estado' => 'anulada',
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Devolucion anulada correctamente.',
+            'data' => $devolucion->fresh([
+                'venta:id,numero,fecha_venta',
+                'usuario:id,name',
+                'detalles.producto:id,nombre',
+            ]),
+        ]);
+    }
+
+    public function ticket(Request $request, Devolucion $devolucion): Response
+    {
+        if ((int) $devolucion->usuario_id !== (int) $request->user()->id) {
+            abort(403, 'No autorizado para ver este ticket.');
+        }
+
+        $devolucion->loadMissing([
+            'venta:id,numero,fecha_venta',
+            'usuario:id,name,username',
+            'detalles.producto:id,nombre',
+        ]);
+
+        $lineas = max(12, $devolucion->detalles->count() + 12);
+        $altoPuntos = max(430, (int) round($lineas * 22));
+
+        $pdf = Pdf::loadView('tickets.devolucion', [
+            'devolucion' => $devolucion,
+            'empresa' => [
+                'nombre' => Configuracion::valor('nombre_empresa', config('app.name', 'Sistema POS e Inventario')),
+                'telefono' => Configuracion::valor('telefono_empresa', null),
+                'direccion' => Configuracion::valor('direccion_empresa', null),
+            ],
+        ])->setPaper([0, 0, 226.77, $altoPuntos], 'portrait');
+
+        return $pdf->stream('ticket-devolucion-'.$devolucion->id.'.pdf');
     }
 }

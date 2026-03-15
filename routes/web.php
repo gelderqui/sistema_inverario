@@ -106,11 +106,13 @@ Route::prefix('api')->group(function (): void {
             Route::get('/get', [CompraController::class, 'index']);
             Route::get('/get/catalogs', [CompraController::class, 'catalogs']);
             Route::post('/store', [CompraController::class, 'store']);
+            Route::patch('/anular/{compra}', [CompraController::class, 'anular']);
         });
 
         Route::prefix('caja')->group(function (): void {
             Route::get('/get/estado', [CajaController::class, 'estado'])->middleware('permission:caja_movimientos|caja_arqueo|caja_cierre|caja_apertura');
             Route::get('/get/movimientos', [CajaController::class, 'movimientos'])->middleware('permission:caja_movimientos');
+            Route::get('/get/catalogs', [CajaController::class, 'catalogs'])->middleware('permission:caja_movimientos');
             Route::post('/apertura', [CajaController::class, 'apertura'])->middleware('permission:caja_apertura');
             Route::post('/movimientos/ajuste', [CajaController::class, 'registrarAjuste'])->middleware('permission:caja_movimientos');
             Route::post('/arqueo', [CajaController::class, 'arqueo'])->middleware('permission:caja_arqueo');
@@ -123,11 +125,15 @@ Route::prefix('api')->group(function (): void {
             Route::get('/historial/get', [VentaController::class, 'index'])->middleware('permission:historial_ventas|ventas');
             Route::get('/get/catalogs', [VentaController::class, 'catalogs'])->middleware('permission:ventas');
             Route::post('/store', [VentaController::class, 'store'])->middleware('permission:ventas');
+            Route::patch('/anular/{venta}', [VentaController::class, 'anular'])->middleware('permission:ventas|historial_ventas');
+            Route::get('/{venta}/ticket', [VentaController::class, 'ticket'])->middleware('permission:ventas|historial_ventas');
 
             Route::prefix('devoluciones')->group(function (): void {
                 Route::get('/get', [DevolucionController::class, 'index'])->middleware('permission:devoluciones');
                 Route::get('/get/catalogs', [DevolucionController::class, 'catalogs'])->middleware('permission:devoluciones');
                 Route::post('/store', [DevolucionController::class, 'store'])->middleware('permission:devoluciones');
+                Route::patch('/anular/{devolucion}', [DevolucionController::class, 'anular'])->middleware('permission:devoluciones|historial_ventas');
+                Route::get('/{devolucion}/ticket', [DevolucionController::class, 'ticket'])->middleware('permission:devoluciones|historial_ventas');
             });
         });
 

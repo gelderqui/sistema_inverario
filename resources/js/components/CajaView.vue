@@ -16,9 +16,9 @@
         <div class="row g-3 mb-3" v-if="resumen">
             <div class="col-6 col-lg-2"><div class="metric"><small>Apertura</small><strong>Q {{ q(resumen.total_apertura) }}</strong></div></div>
             <div class="col-6 col-lg-2"><div class="metric"><small>Ventas</small><strong>Q {{ q(resumen.total_ventas) }}</strong></div></div>
+            <div class="col-6 col-lg-2"><div class="metric"><small>Ingresos</small><strong>Q {{ q(resumen.total_ingresos) }}</strong></div></div>
             <div class="col-6 col-lg-2"><div class="metric"><small>Gastos</small><strong>Q {{ q(resumen.total_gastos) }}</strong></div></div>
-            <div class="col-6 col-lg-2"><div class="metric"><small>Compras</small><strong>Q {{ q(resumen.total_compras) }}</strong></div></div>
-            <div class="col-6 col-lg-2"><div class="metric"><small>Ajustes</small><strong>Q {{ q(resumen.total_ajustes) }}</strong></div></div>
+            <div class="col-6 col-lg-2"><div class="metric"><small>Egresos</small><strong>Q {{ q(resumen.total_egresos) }}</strong></div></div>
             <div class="col-6 col-lg-2"><div class="metric"><small>Sistema</small><strong>Q {{ q(resumen.monto_sistema) }}</strong></div></div>
         </div>
 
@@ -54,15 +54,31 @@
                     <div class="col-12 col-md-3">
                         <label class="form-label">Tipo</label>
                         <select v-model="formAjuste.tipo" class="form-select">
-                            <option value="ingreso_manual">Ingreso manual</option>
-                            <option value="ajuste">Ajuste egreso</option>
+                            <option value="ingreso">Ingreso</option>
+                            <option value="egreso">Egreso</option>
+                            <option value="gasto">Gasto desde caja</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-3">
                         <label class="form-label">Monto</label>
                         <input v-model.number="formAjuste.monto" type="number" min="0.01" step="0.01" class="form-control" />
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3" v-if="formAjuste.tipo === 'egreso'">
+                        <label class="form-label">Destino</label>
+                        <select v-model="formAjuste.destino" class="form-select">
+                            <option value="banco">Banco</option>
+                            <option value="caja_principal">Caja principal</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3" v-if="formAjuste.tipo === 'gasto'">
+                        <label class="form-label">Tipo gasto</label>
+                        <select v-model="formAjuste.tipo_gasto_id" class="form-select">
+                            <option :value="null">Seleccione</option>
+                            <option v-for="t in catalogs.tipos_gasto" :key="t.id" :value="t.id">{{ t.nombre }}</option>
+                        </select>
+                    </div>
+                    <div class="col-12" :class="formAjuste.tipo === 'ingreso' ? 'col-md-4' : 'col-md-3'">
                         <label class="form-label">Descripcion</label>
                         <input v-model="formAjuste.descripcion" type="text" class="form-control" />
                     </div>
@@ -157,6 +173,7 @@ const cajaActiva = ref(null);
 const resumen = ref(null);
 const movimientos = ref([]);
 const alertaCaja = ref(null);
+const catalogs = ref({ tipos_gasto: [] });
 
 const formApertura = ref({
     monto_apertura: 0,
@@ -164,9 +181,11 @@ const formApertura = ref({
 });
 
 const formAjuste = ref({
-    tipo: 'ingreso_manual',
+    tipo: 'ingreso',
     monto: null,
     descripcion: '',
+    destino: 'banco',
+    tipo_gasto_id: null,
 });
 
 const formArqueo = ref({
@@ -204,6 +223,7 @@ watch(totalBilletes, (v) => {
 });
 
 onMounted(async () => {
+    await loadCatalogs();
     await loadEstado();
     await loadMovimientos();
 });
@@ -247,6 +267,15 @@ async function loadMovimientos() {
     }
 }
 
+async function loadCatalogs() {
+    try {
+        const { data } = await axios.get('/caja/get/catalogs');
+        catalogs.value = data?.data ?? catalogs.value;
+    } catch {
+        catalogs.value = { tipos_gasto: [] };
+    }
+}
+
 async function abrirCaja() {
     loading.value = true;
     try {
@@ -272,6 +301,7 @@ async function registrarAjuste() {
         });
         formAjuste.value.monto = null;
         formAjuste.value.descripcion = '';
+        formAjuste.value.tipo_gasto_id = null;
         await loadEstado();
         await loadMovimientos();
     } finally {

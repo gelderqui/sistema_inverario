@@ -6,14 +6,32 @@ use App\Http\Controllers\Controller;
 use App\Models\ArqueoCaja;
 use App\Models\Caja;
 use App\Models\Configuracion;
+use App\Models\Gasto;
 use App\Models\MovimientoCaja;
+use App\Models\TipoGasto;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CajaController extends Controller
 {
+    public function catalogs(): JsonResponse
+    {
+        $tiposGasto = TipoGasto::query()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
+        return response()->json([
+            'data' => [
+                'tipos_gasto' => $tiposGasto,
+                'destinos_egreso' => ['banco', 'caja_principal', 'otro'],
+            ],
+        ]);
+    }
+
     public function estado(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -149,9 +167,11 @@ class CajaController extends Controller
     public function registrarAjuste(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'tipo' => ['required', 'in:ingreso_manual,ajuste'],
+            'tipo' => ['required', 'in:ingreso,egreso,gasto'],
             'monto' => ['required', 'numeric', 'gt:0'],
             'descripcion' => ['nullable', 'string', 'max:255'],
+            'destino' => ['nullable', 'string', 'max:80'],
+            'tipo_gasto_id' => ['nullable', 'integer', 'exists:tipos_gasto,id'],
             'fecha' => ['nullable', 'date'],
         ]);
 
@@ -169,19 +189,58 @@ class CajaController extends Controller
             ], 422);
         }
 
-        $monto = toMoney($validated['monto'], 4);
-        if ($validated['tipo'] === 'ajuste') {
-            $monto *= -1;
-        }
+        $movimiento = DB::transaction(function () use ($validated, $caja, $user) {
+            $tipo = $validated['tipo'];
+            $fecha = $validated['fecha'] ?? now()->toDateTimeString();
+            $monto = toMoney($validated['monto'], 4);
+            $descripcion = trim((string) ($validated['descripcion'] ?? ''));
 
-        $movimiento = MovimientoCaja::query()->create([
-            'caja_id' => $caja->id,
-            'tipo' => $validated['tipo'],
-            'monto' => $monto,
-            'descripcion' => $validated['descripcion'] ?? null,
-            'fecha' => $validated['fecha'] ?? now()->toDateTimeString(),
-            'usuario_id' => $user->id,
-        ]);
+            if (in_array($tipo, ['egreso', 'gasto'], true)) {
+                $monto *= -1;
+            }
+
+            if ($tipo === 'gasto') {
+                if (! isset($validated['tipo_gasto_id'])) {
+                    throw ValidationException::withMessages([
+                        'tipo_gasto_id' => ['Debe seleccionar tipo de gasto para registrar gasto desde caja.'],
+                    ]);
+                }
+
+                $gasto = Gasto::query()->create([
+                    'tipo_gasto_id' => (int) $validated['tipo_gasto_id'],
+                    'descripcion' => $descripcion !== '' ? $descripcion : 'Gasto registrado desde caja POS',
+                    'monto' => toMoney($validated['monto'], 4),
+                    'fecha' => Carbon::parse((string) $fecha)->toDateString(),
+                    'usuario_id' => $user->id,
+                    'metodo_pago' => 'caja',
+                ]);
+
+                return MovimientoCaja::query()->create([
+                    'caja_id' => $caja->id,
+                    'tipo' => 'gasto',
+                    'monto' => $monto,
+                    'descripcion' => $gasto->descripcion,
+                    'referencia_tipo' => 'gasto',
+                    'referencia_id' => $gasto->id,
+                    'fecha' => $fecha,
+                    'usuario_id' => $user->id,
+                ]);
+            }
+
+            if ($tipo === 'egreso' && ! empty($validated['destino'])) {
+                $destino = str_replace('_', ' ', (string) $validated['destino']);
+                $descripcion = trim($descripcion.' | Destino: '.$destino);
+            }
+
+            return MovimientoCaja::query()->create([
+                'caja_id' => $caja->id,
+                'tipo' => $tipo,
+                'monto' => $monto,
+                'descripcion' => $descripcion !== '' ? $descripcion : null,
+                'fecha' => $fecha,
+                'usuario_id' => $user->id,
+            ]);
+        });
 
         return response()->json([
             'message' => 'Movimiento de caja registrado.',
@@ -281,8 +340,8 @@ class CajaController extends Controller
             'fecha_cierre' => $validated['fecha_cierre'] ?? now()->toDateTimeString(),
             'total_ventas' => $resumen['total_ventas'],
             'total_gastos' => $resumen['total_gastos'],
-            'total_compras' => $resumen['total_compras'],
-            'total_ajustes' => $resumen['total_ajustes'],
+            'total_compras' => $resumen['total_egresos'],
+            'total_ajustes' => $resumen['total_ingresos'],
             'monto_sistema_final' => $resumen['monto_sistema'],
             'monto_contado_final' => $montoContadoFinal,
             'diferencia' => $diferencia,
@@ -347,7 +406,9 @@ class CajaController extends Controller
             $total = collect($validated['billetes'])
                 ->sum(fn (array $row): float => toMoney((float) $row['denominacion'] * (float) $row['cantidad'], 4));
 
-            return toMoney($total, 4);
+            if ($total > 0) {
+                return toMoney($total, 4);
+            }
         }
 
         return toMoney($validated['monto_contado'] ?? 0, 4);
@@ -365,16 +426,16 @@ class CajaController extends Controller
         $totalApertura = toMoney((float) (clone $base)->where('tipo', 'apertura')->sum('monto'), 4);
         $totalVentas = toMoney((float) (clone $base)->where('tipo', 'venta')->sum('monto'), 4);
         $totalGastos = toMoney((float) abs((float) (clone $base)->where('tipo', 'gasto')->sum('monto')), 4);
-        $totalCompras = toMoney((float) abs((float) (clone $base)->where('tipo', 'compra')->sum('monto')), 4);
-        $totalAjustes = toMoney((float) (clone $base)->whereIn('tipo', ['ingreso_manual', 'ajuste'])->sum('monto'), 4);
+        $totalIngresos = toMoney((float) (clone $base)->where('tipo', 'ingreso')->sum('monto'), 4);
+        $totalEgresos = toMoney((float) abs((float) (clone $base)->where('tipo', 'egreso')->sum('monto')), 4);
         $montoSistema = $this->calcularMontoSistema($cajaId);
 
         return [
             'total_apertura' => $totalApertura,
             'total_ventas' => $totalVentas,
             'total_gastos' => $totalGastos,
-            'total_compras' => $totalCompras,
-            'total_ajustes' => $totalAjustes,
+            'total_ingresos' => $totalIngresos,
+            'total_egresos' => $totalEgresos,
             'monto_sistema' => $montoSistema,
         ];
     }

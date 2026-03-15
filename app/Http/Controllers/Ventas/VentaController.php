@@ -4,24 +4,37 @@ namespace App\Http\Controllers\Ventas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
+use App\Models\Configuracion;
 use App\Models\InventarioLote;
 use App\Models\InventarioMovimiento;
 use App\Models\Producto;
 use App\Models\Venta;
 use App\Models\VentaDetalle;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class VentaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $desde = $request->filled('desde')
+            ? Carbon::parse((string) $request->input('desde'))->toDateString()
+            : Carbon::today()->toDateString();
+        $hasta = $request->filled('hasta')
+            ? Carbon::parse((string) $request->input('hasta'))->toDateString()
+            : $desde;
+
         $ventas = Venta::query()
             ->with(['cliente:id,nombre'])
             ->withCount('detalles')
+            ->where('add_user', (int) $request->user()->id)
+            ->whereBetween('fecha_venta', [$desde, $hasta])
             ->orderByDesc('fecha_venta')
             ->orderByDesc('id')
             ->get([
@@ -29,6 +42,7 @@ class VentaController extends Controller
                 'numero',
                 'cliente_id',
                 'fecha_venta',
+                'estado',
                 'metodo_pago',
                 'subtotal',
                 'descuento',
@@ -40,6 +54,10 @@ class VentaController extends Controller
 
         return response()->json([
             'data' => $ventas,
+            'meta' => [
+                'desde' => $desde,
+                'hasta' => $hasta,
+            ],
         ]);
     }
 
@@ -104,6 +122,7 @@ class VentaController extends Controller
                 'numero' => $numeroVenta,
                 'cliente_id' => $validated['cliente_id'] ?? null,
                 'fecha_venta' => $validated['fecha_venta'],
+                'estado' => 'activo',
                 'metodo_pago' => $validated['metodo_pago'],
                 'subtotal' => 0,
                 'descuento' => toMoney($validated['descuento'] ?? 0, 4),
@@ -245,5 +264,126 @@ class VentaController extends Controller
             'message' => 'Venta registrada correctamente.',
             'data' => $result,
         ], 201);
+    }
+
+    public function anular(Request $request, Venta $venta): JsonResponse
+    {
+        if ((int) $venta->add_user !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'No autorizado para anular esta venta.',
+            ], 403);
+        }
+
+        if ($venta->estado !== 'activo') {
+            return response()->json([
+                'message' => 'Solo se pueden anular ventas activas.',
+            ], 422);
+        }
+
+        $userId = (int) $request->user()->id;
+
+        DB::transaction(function () use ($venta, $userId): void {
+            $venta = Venta::query()
+                ->with([
+                    'detalles:id,venta_id,producto_id,cantidad,precio_unitario,subtotal',
+                    'detalles.producto:id,nombre,stock_actual,costo_promedio,control_vencimiento',
+                ])
+                ->lockForUpdate()
+                ->findOrFail($venta->id);
+
+            $devolucionesActivas = $venta->devoluciones()->where('estado', 'activo')->count();
+            if ($devolucionesActivas > 0) {
+                throw ValidationException::withMessages([
+                    'venta' => ['No se puede anular la venta porque tiene devoluciones activas asociadas.'],
+                ]);
+            }
+
+            foreach ($venta->detalles as $detalle) {
+                $producto = Producto::query()->lockForUpdate()->findOrFail($detalle->producto_id);
+                $cantidad = toMoney($detalle->cantidad, 4);
+
+                $stockAnterior = (float) $producto->stock_actual;
+                $stockNuevo = toMoney($stockAnterior + $cantidad, 4);
+
+                $producto->update([
+                    'stock_actual' => $stockNuevo,
+                    'mod_user' => $userId,
+                ]);
+
+                if ((bool) $producto->control_vencimiento) {
+                    InventarioLote::query()->create([
+                        'producto_id' => $producto->id,
+                        'compra_detalle_id' => null,
+                        'cantidad_inicial' => $cantidad,
+                        'cantidad_disponible' => $cantidad,
+                        'costo_unitario' => toMoney($producto->costo_promedio, 4),
+                        'fecha_vencimiento' => null,
+                        'fecha_entrada' => now()->toDateString(),
+                    ]);
+                }
+
+                InventarioMovimiento::query()->create([
+                    'producto_id' => $producto->id,
+                    'venta_id' => $venta->id,
+                    'venta_detalle_id' => $detalle->id,
+                    'tipo' => 'anulacion_venta',
+                    'cantidad' => $cantidad,
+                    'stock_anterior' => $stockAnterior,
+                    'stock_nuevo' => $stockNuevo,
+                    'costo_unitario' => $producto->costo_promedio,
+                    'referencia' => $venta->numero,
+                    'nota' => 'Anulacion de venta',
+                    'add_user' => $userId,
+                ]);
+            }
+
+            $venta->update([
+                'estado' => 'anulada',
+                'mod_user' => $userId,
+            ]);
+
+            if ($venta->metodo_pago === 'efectivo') {
+                registrarMovimientoCajaAutomatico(
+                    $userId,
+                    'anulacion_venta',
+                    toMoney(-1 * (float) $venta->total, 4),
+                    'Anulacion de venta '.$venta->numero,
+                    now()->toDateTimeString(),
+                    'venta',
+                    $venta->id
+                );
+            }
+        });
+
+        return response()->json([
+            'message' => 'Venta anulada correctamente.',
+            'data' => $venta->fresh(['cliente:id,nombre'])->loadCount('detalles'),
+        ]);
+    }
+
+    public function ticket(Request $request, Venta $venta): Response
+    {
+        if ((int) $venta->add_user !== (int) $request->user()->id) {
+            abort(403, 'No autorizado para ver este ticket.');
+        }
+
+        $venta->loadMissing([
+            'cliente:id,nombre,nit',
+            'detalles.producto:id,nombre',
+        ]);
+
+        $lineas = max(12, $venta->detalles->count() + 12);
+        $altoPuntos = max(430, (int) round($lineas * 22));
+
+        $pdf = Pdf::loadView('tickets.venta', [
+            'venta' => $venta,
+            'empresa' => [
+                'nombre' => Configuracion::valor('nombre_empresa', config('app.name', 'Sistema POS e Inventario')),
+                'telefono' => Configuracion::valor('telefono_empresa', null),
+                'direccion' => Configuracion::valor('direccion_empresa', null),
+            ],
+        ])->setPaper([0, 0, 226.77, $altoPuntos], 'portrait');
+
+        return $pdf->stream('ticket-venta-'.$venta->numero.'.pdf');
     }
 }

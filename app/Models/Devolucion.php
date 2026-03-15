@@ -14,6 +14,7 @@ class Devolucion extends Model
         'venta_id',
         'usuario_id',
         'fecha',
+        'estado',
         'total',
     ];
 
@@ -21,6 +22,7 @@ class Devolucion extends Model
     {
         return [
             'fecha' => 'date',
+            'estado' => 'string',
             'total' => 'decimal:4',
         ];
     }

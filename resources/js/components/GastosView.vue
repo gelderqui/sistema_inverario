@@ -199,7 +199,7 @@ import axios from '@/bootstrap';
 import FormErrors from '@/components/FormErrors.vue';
 
 const gastos = ref([]);
-const catalogs = ref({ tipos_gasto: [], metodos_pago: ['efectivo', 'transferencia'] });
+const catalogs = ref({ tipos_gasto: [], metodos_pago: ['caja', 'caja_chica', 'banco'] });
 const loading = ref(true);
 const saving = ref(false);
 const loadingReportes = ref(false);
@@ -218,7 +218,7 @@ const emptyForm = () => ({
     descripcion: '',
     monto: null,
     fecha: new Date().toISOString().slice(0, 10),
-    metodo_pago: 'efectivo',
+    metodo_pago: 'caja',
 });
 
 const form = ref(emptyForm());

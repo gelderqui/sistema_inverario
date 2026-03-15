@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('numero')->unique();
             $table->unsignedBigInteger('proveedor_id');
             $table->date('fecha_compra');
-            $table->string('estado')->default('registrada');
+            $table->string('estado')->default('activo');
             $table->decimal('total', 12, 4)->default(0);
             $table->text('observaciones')->nullable();
             $table->unsignedBigInteger('add_user')->nullable();
