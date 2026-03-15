@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Medida;
+use App\Models\UnidadMedida;
 use Illuminate\Database\Seeder;
 
 class MedidaSeeder extends Seeder
@@ -10,26 +10,26 @@ class MedidaSeeder extends Seeder
     public function run(): void
     {
         $items = [
-            ['codigo' => 'unidad', 'nombre' => 'Unidad'],
-            ['codigo' => 'lb', 'nombre' => 'Libra'],
-            ['codigo' => 'kg', 'nombre' => 'Kilogramo'],
-            ['codigo' => 'g', 'nombre' => 'Gramo'],
-            ['codigo' => 'onza', 'nombre' => 'Onza'],
-            ['codigo' => 'qq', 'nombre' => 'Quintal'],
-            ['codigo' => 'litro', 'nombre' => 'Litro'],
-            ['codigo' => 'ml', 'nombre' => 'Mililitro'],
-            ['codigo' => 'galon', 'nombre' => 'Galon'],
-            ['codigo' => 'caja', 'nombre' => 'Caja'],
-            ['codigo' => 'paquete', 'nombre' => 'Paquete'],
-            ['codigo' => 'docena', 'nombre' => 'Docena'],
-            ['codigo' => 'botella', 'nombre' => 'Botella'],
-            ['codigo' => 'lata', 'nombre' => 'Lata'],
-            ['codigo' => 'bolsa', 'nombre' => 'Bolsa'],
+            ['nombre' => 'Unidad',      'abreviatura' => 'und'],
+            ['nombre' => 'Libra',       'abreviatura' => 'lb'],
+            ['nombre' => 'Kilogramo',   'abreviatura' => 'kg'],
+            ['nombre' => 'Gramo',       'abreviatura' => 'g'],
+            ['nombre' => 'Onza',        'abreviatura' => 'oz'],
+            ['nombre' => 'Quintal',     'abreviatura' => 'qq'],
+            ['nombre' => 'Litro',       'abreviatura' => 'lt'],
+            ['nombre' => 'Mililitro',   'abreviatura' => 'ml'],
+            ['nombre' => 'Galon',       'abreviatura' => 'gal'],
+            ['nombre' => 'Caja',        'abreviatura' => 'cja'],
+            ['nombre' => 'Paquete',     'abreviatura' => 'pqt'],
+            ['nombre' => 'Docena',      'abreviatura' => 'doc'],
+            ['nombre' => 'Botella',     'abreviatura' => 'bot'],
+            ['nombre' => 'Lata',        'abreviatura' => 'lta'],
+            ['nombre' => 'Bolsa',       'abreviatura' => 'bol'],
         ];
 
         foreach ($items as $item) {
-            Medida::query()->updateOrCreate(
-                ['codigo' => $item['codigo']],
+            UnidadMedida::query()->updateOrCreate(
+                ['abreviatura' => $item['abreviatura']],
                 [
                     'nombre' => $item['nombre'],
                     'activo' => true,

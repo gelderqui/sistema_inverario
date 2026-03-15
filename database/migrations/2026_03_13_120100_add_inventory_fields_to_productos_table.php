@@ -14,8 +14,10 @@ return new class extends Migration
             $table->decimal('costo_promedio', 12, 4)->default(0)->after('precio_venta');
             $table->decimal('stock_actual', 12, 4)->default(0)->after('costo_promedio');
             $table->decimal('stock_minimo', 12, 4)->default(0)->after('stock_actual');
-            $table->string('unidad_medida', 30)->default('unidad')->after('stock_minimo');
-            $table->decimal('peso_referencial', 12, 4)->nullable()->after('unidad_medida');
+            $table->unsignedBigInteger('unidad_medida_id')->nullable()->after('stock_minimo');
+            $table->boolean('control_vencimiento')->default(false)->after('unidad_medida_id');
+            $table->unsignedSmallInteger('dias_alerta_vencimiento')->default(15)->after('control_vencimiento');
+            $table->decimal('peso_referencial', 12, 4)->nullable()->after('dias_alerta_vencimiento');
 
             $table->foreign('proveedor_id')->references('id')->on('proveedores')->nullOnDelete();
             $table->index(['activo', 'stock_actual'], 'productos_activo_stock_idx');
@@ -35,7 +37,9 @@ return new class extends Migration
                 'costo_promedio',
                 'stock_actual',
                 'stock_minimo',
-                'unidad_medida',
+                'unidad_medida_id',
+                'control_vencimiento',
+                'dias_alerta_vencimiento',
                 'peso_referencial',
             ]);
         });

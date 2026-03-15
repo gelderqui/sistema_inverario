@@ -63,12 +63,20 @@
                                 </div>
                                 <div class="col-12 col-md-8">
                                     <label class="form-label fw-semibold">Proveedor *</label>
-                                    <select v-model="form.proveedor_id" class="form-select" required>
-                                        <option :value="null">Seleccione proveedor</option>
-                                        <option v-for="prov in catalogs.proveedores" :key="prov.id" :value="prov.id">
-                                            {{ prov.nombre }}
-                                        </option>
-                                    </select>
+                                    <input
+                                        v-model="form.proveedor_query"
+                                        list="prov-datalist"
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="Buscar proveedor..."
+                                        autocomplete="off"
+                                        @input="resolveProveedorFromQuery"
+                                        @blur="resolveProveedorFromQuery"
+                                    >
+                                    <datalist id="prov-datalist">
+                                        <option v-for="prov in catalogs.proveedores" :key="prov.id" :value="prov.nombre" />
+                                    </datalist>
+                                    <div v-if="form.proveedor_query && !form.proveedor_id" class="form-text text-danger">Proveedor no encontrado en el listado.</div>
                                 </div>
                             </div>
 
@@ -128,8 +136,8 @@
                                                         :value="productSearchText(prod)"
                                                     />
                                                 </datalist>
-                                                <div class="form-text compra-product-hint">
-                                                    {{ selectedProductName(item) || 'Selecciona o escribe para buscar producto.' }}
+                                                <div v-if="selectedProductName(item)" class="form-text compra-product-hint">
+                                                    {{ selectedProductName(item) }}
                                                 </div>
                                             </td>
                                             <td><input v-model.number="item.cantidad" type="number" step="0.0001" min="0.0001" class="form-control form-control-sm"></td>
@@ -186,6 +194,8 @@ import FormErrors from '@/components/FormErrors.vue';
 
 const compras = ref([]);
 const catalogs = ref({ categorias: [], proveedores: [], productos: [] });
+const proveedorGeneralId = ref(null);
+const proveedorGeneralNombre = ref('');
 const loading = ref(true);
 const saving = ref(false);
 const formErrors = ref([]);
@@ -199,14 +209,15 @@ const emptyItem = () => ({
     producto_id: null,
     producto_query: '',
     cantidad: 1,
-    unidad_medida: 'unidad',
+    unidad_medida: '',
     costo_unitario: 0,
     precio_venta: 0,
     fecha_caducidad: null,
 });
 
 const emptyForm = () => ({
-    proveedor_id: null,
+    proveedor_id: proveedorGeneralId.value,
+    proveedor_query: proveedorGeneralNombre.value,
     fecha_compra: new Date().toISOString().slice(0, 10),
     observaciones: '',
     items: [emptyItem()],
@@ -239,6 +250,14 @@ async function loadCompras() {
 async function loadCatalogs() {
     const { data } = await axios.get('/compras/get/catalogs');
     catalogs.value = data.data;
+    const generalId = data.data.proveedor_general_id;
+    if (generalId) {
+        const prov = data.data.proveedores.find((p) => p.id === generalId);
+        if (prov) {
+            proveedorGeneralId.value = prov.id;
+            proveedorGeneralNombre.value = prov.nombre;
+        }
+    }
 }
 
 function openCreate() {
@@ -274,6 +293,26 @@ function selectedProductName(item) {
 function onCategoryChange(item) {
     item.producto_id = null;
     item.producto_query = '';
+}
+
+function resolveProveedorFromQuery() {
+    const query = String(form.value.proveedor_query || '').trim().toLowerCase();
+    if (!query) {
+        form.value.proveedor_id = null;
+        return;
+    }
+    const exact = catalogs.value.proveedores.find((p) => p.nombre.toLowerCase() === query);
+    if (exact) {
+        form.value.proveedor_id = exact.id;
+        return;
+    }
+    const matches = catalogs.value.proveedores.filter((p) => p.nombre.toLowerCase().includes(query));
+    if (matches.length === 1) {
+        form.value.proveedor_id = matches[0].id;
+        form.value.proveedor_query = matches[0].nombre;
+    } else {
+        form.value.proveedor_id = null;
+    }
 }
 
 function resolveProductFromQuery(item) {
@@ -314,7 +353,12 @@ function syncItemMeasure(item) {
     const producto = catalogs.value.productos.find((prod) => prod.id === item.producto_id);
     if (!producto) return;
 
-    item.unidad_medida = producto.unidad_medida || item.unidad_medida || 'unidad';
+    const um = producto.unidad_medida;
+    if (um && typeof um === 'object') {
+        item.unidad_medida = `${um.nombre} (${um.abreviatura})`;
+    } else {
+        item.unidad_medida = um || '—';
+    }
 }
 
 function removeItem(index) {
@@ -322,6 +366,10 @@ function removeItem(index) {
 }
 
 async function save() {
+    if (!form.value.proveedor_id) {
+        formErrors.value = ['Seleccione un proveedor válido de la lista.'];
+        return;
+    }
     saving.value = true;
     formErrors.value = [];
     alerts.value = [];

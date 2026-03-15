@@ -6,6 +6,7 @@ use App\Models\Categoria;
 use App\Models\Cliente;
 use App\Models\Producto;
 use App\Models\Proveedor;
+use App\Models\UnidadMedida;
 use Illuminate\Database\Seeder;
 
 class CatalogDefaultsSeeder extends Seeder
@@ -36,22 +37,24 @@ class CatalogDefaultsSeeder extends Seeder
         );
 
         $proveedorVarios = Proveedor::query()->where('nombre', 'Proveedores varios')->first();
+        $unidadUnidad = UnidadMedida::query()->where('abreviatura', 'und')->first();
 
         Producto::query()->updateOrCreate(
             ['nombre' => 'Producto prueba'],
             [
-                'categoria_id' => $categoriaGeneral->id,
-                'proveedor_id' => $proveedorVarios?->id,
-                'codigo_barra' => null,
-                'detalle' => 'Producto inicial de prueba para compras e inventario.',
-                'palabras_clave' => 'prueba,general',
-                'precio_venta' => 0,
-                'costo_promedio' => 0,
-                'stock_actual' => 0,
-                'stock_minimo' => 0,
-                'unidad_medida' => 'unidad',
-                'peso_referencial' => 0,
-                'activo' => true,
+                'categoria_id'       => $categoriaGeneral->id,
+                'proveedor_id'       => $proveedorVarios?->id,
+                'codigo_barra'       => null,
+                'detalle'            => 'Producto inicial de prueba para compras e inventario.',
+                'palabras_clave'     => 'prueba,general',
+                'precio_venta'       => 0,
+                'costo_promedio'     => 0,
+                'stock_actual'       => 0,
+                'stock_minimo'       => 0,
+                'unidad_medida_id'   => $unidadUnidad?->id,
+                'control_vencimiento' => false,
+                'peso_referencial'   => 0,
+                'activo'             => true,
             ]
         );
     }

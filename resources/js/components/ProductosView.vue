@@ -183,16 +183,57 @@
                                 </div>
 
                                 <div class="col-12 col-sm-6">
-                                    <label class="form-label fw-semibold" for="p-medida">Medida *</label>
-                                    <select id="p-medida" v-model="form.unidad_medida" class="form-select" required>
+                                    <label class="form-label fw-semibold" for="p-medida">Unidad de medida *</label>
+                                    <select id="p-medida" v-model="form.unidad_medida_id" class="form-select" required>
+                                        <option :value="null" disabled>Seleccione unidad</option>
                                         <option
                                             v-for="medida in medidasActivas"
                                             :key="medida.id"
-                                            :value="medida.codigo"
+                                            :value="medida.id"
                                         >
-                                            {{ medida.nombre }}
+                                            {{ medida.nombre }} ({{ medida.abreviatura }})
                                         </option>
                                     </select>
+                                </div>
+
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label fw-semibold" for="p-stock-minimo">Stock minimo</label>
+                                    <input
+                                        id="p-stock-minimo"
+                                        v-model.number="form.stock_minimo"
+                                        type="number"
+                                        step="0.0001"
+                                        min="0"
+                                        class="form-control"
+                                    >
+                                    <div class="form-text">Alerta cuando el inventario baje de este valor.</div>
+                                </div>
+
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-check form-switch mt-sm-2 pt-sm-1">
+                                        <input
+                                            id="p-control-vencimiento"
+                                            v-model="form.control_vencimiento"
+                                            type="checkbox"
+                                            class="form-check-input"
+                                        >
+                                        <label class="form-check-label" for="p-control-vencimiento">Controla vencimiento</label>
+                                        <div class="form-text">Activa el seguimiento de lotes por fecha de caducidad.</div>
+                                    </div>
+                                </div>
+
+                                <div v-if="form.control_vencimiento" class="col-12 col-sm-6">
+                                    <label class="form-label fw-semibold" for="p-dias-alerta">Alertar vencimiento (dias antes)</label>
+                                    <input
+                                        id="p-dias-alerta"
+                                        v-model.number="form.dias_alerta_vencimiento"
+                                        type="number"
+                                        step="1"
+                                        min="1"
+                                        max="365"
+                                        class="form-control"
+                                    >
+                                    <div class="form-text">Se generara una alerta cuando falten estos dias para que un lote venza.</div>
                                 </div>
 
                                 <div class="col-12">
@@ -265,7 +306,10 @@ const emptyForm = () => ({
     codigo_barra: '',
     detalle: '',
     palabras_clave: '',
-    unidad_medida: 'unidad',
+    unidad_medida_id: medidasActivas.value[0]?.id ?? null,
+    stock_minimo: 0,
+    control_vencimiento: false,
+    dias_alerta_vencimiento: 15,
     activo: true,
 });
 
@@ -273,7 +317,7 @@ const form = ref(emptyForm());
 
 onMounted(async () => {
     formModal = new Modal(formModalRef.value);
-    await Promise.all([loadProductos(), loadCategorias(), loadProveedores()]);
+    await Promise.all([loadProductos(), loadCategorias(), loadProveedores(), loadMedidas()]);
 });
 
 const confirmTitle = computed(() => (confirmMode.value === 'delete' ? 'Eliminar producto' : `${selected.value?.activo ? 'Desactivar' : 'Activar'} producto`));
@@ -309,6 +353,11 @@ async function loadProveedores() {
     proveedoresActivos.value = (data.data ?? []).filter((item) => item.activo);
 }
 
+async function loadMedidas() {
+    const { data } = await axios.get('/catalogos/medidas/get');
+    medidasActivas.value = data.data ?? [];
+}
+
 function openCreate() {
     editingId.value = null;
     form.value = emptyForm();
@@ -319,14 +368,17 @@ function openCreate() {
 function openEdit(prod) {
     editingId.value = prod.id;
     form.value = {
-        categoria_id: prod.categoria_id ?? null,
-        proveedor_id: prod.proveedor_id ?? null,
-        nombre: prod.nombre,
-        codigo_barra: prod.codigo_barra ?? '',
-        detalle: prod.detalle ?? '',
-        palabras_clave: prod.palabras_clave ?? '',
-        unidad_medida: prod.unidad_medida ?? 'unidad',
-        activo: prod.activo,
+        categoria_id:         prod.categoria_id ?? null,
+        proveedor_id:         prod.proveedor_id ?? null,
+        nombre:               prod.nombre,
+        codigo_barra:         prod.codigo_barra ?? '',
+        detalle:              prod.detalle ?? '',
+        palabras_clave:       prod.palabras_clave ?? '',
+        unidad_medida_id:     prod.unidad_medida_id ?? null,
+        stock_minimo:             prod.stock_minimo ?? 0,
+        control_vencimiento:      prod.control_vencimiento ?? false,
+        dias_alerta_vencimiento:  prod.dias_alerta_vencimiento ?? 15,
+        activo:                   prod.activo,
     };
     formErrors.value = [];
     formModal.show();

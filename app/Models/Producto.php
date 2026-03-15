@@ -21,7 +21,9 @@ class Producto extends Model
         'costo_promedio',
         'stock_actual',
         'stock_minimo',
-        'unidad_medida',
+        'unidad_medida_id',
+        'control_vencimiento',
+        'dias_alerta_vencimiento',
         'peso_referencial',
         'activo',
         'add_user',
@@ -31,12 +33,14 @@ class Producto extends Model
     protected function casts(): array
     {
         return [
-            'activo' => 'bool',
-            'precio_venta' => 'decimal:4',
-            'costo_promedio' => 'decimal:4',
-            'stock_actual' => 'decimal:4',
-            'stock_minimo' => 'decimal:4',
-            'peso_referencial' => 'decimal:4',
+            'activo'              => 'bool',
+            'control_vencimiento' => 'bool',
+            'dias_alerta_vencimiento' => 'integer',
+            'precio_venta'        => 'decimal:4',
+            'costo_promedio'      => 'decimal:4',
+            'stock_actual'        => 'decimal:4',
+            'stock_minimo'        => 'decimal:4',
+            'peso_referencial'    => 'decimal:4',
         ];
     }
 
@@ -48,6 +52,16 @@ class Producto extends Model
     public function proveedor(): BelongsTo
     {
         return $this->belongsTo(Proveedor::class, 'proveedor_id');
+    }
+
+    public function unidadMedida(): BelongsTo
+    {
+        return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
+    }
+
+    public function inventarioLotes(): HasMany
+    {
+        return $this->hasMany(InventarioLote::class, 'producto_id');
     }
 
     public function compraDetalles(): HasMany

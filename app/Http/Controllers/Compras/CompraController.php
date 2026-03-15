@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Categoria;
 use App\Models\Compra;
 use App\Models\CompraDetalle;
+use App\Models\InventarioLote;
 use App\Models\InventarioMovimiento;
 use App\Models\Producto;
 use App\Models\Proveedor;
@@ -50,9 +51,14 @@ class CompraController extends Controller
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
 
+        $proveedorGeneral = Proveedor::query()
+            ->where('activo', true)
+            ->where('nombre', 'Proveedores varios')
+            ->value('id');
+
         $productos = Producto::query()
             ->where('activo', true)
-            ->with(['categoria:id,nombre'])
+            ->with(['unidadMedida:id,nombre,abreviatura'])
             ->orderBy('nombre')
             ->get([
                 'id',
@@ -63,14 +69,15 @@ class CompraController extends Controller
                 'costo_promedio',
                 'precio_venta',
                 'stock_actual',
-                'unidad_medida',
+                'unidad_medida_id',
             ]);
 
         return response()->json([
             'data' => [
-                'categorias' => $categorias,
-                'proveedores' => $proveedores,
-                'productos' => $productos,
+                'categorias'          => $categorias,
+                'proveedores'         => $proveedores,
+                'proveedor_general_id' => $proveedorGeneral,
+                'productos'           => $productos,
             ],
         ]);
     }
@@ -111,10 +118,10 @@ class CompraController extends Controller
             $alerts = [];
 
             foreach ($validated['items'] as $item) {
-                $producto = Producto::query()->lockForUpdate()->findOrFail($item['producto_id']);
+                $producto = Producto::query()->with('unidadMedida:id,abreviatura')->lockForUpdate()->findOrFail($item['producto_id']);
 
                 $cantidad = toMoney($item['cantidad'], 4);
-                $unidadMedida = trim((string) ($producto->unidad_medida ?: 'unidad'));
+                $unidadMedidaSnap = $producto->unidadMedida?->abreviatura ?? 'und';
                 $costoUnitario = toMoney($item['costo_unitario'], 4);
                 $subtotal = toMoney($cantidad * $costoUnitario, 4);
 
@@ -141,16 +148,25 @@ class CompraController extends Controller
                 }
 
                 $detalle = CompraDetalle::query()->create([
-                    'compra_id' => $compra->id,
-                    'producto_id' => $producto->id,
-                    'cantidad' => $cantidad,
-                    'unidad_medida' => $unidadMedida,
-                    'costo_unitario' => $costoUnitario,
-                    'subtotal' => $subtotal,
-                    'precio_venta_sugerido' => $precioVentaSugerido,
-                    'precio_venta_aplicado' => $precioVentaAplicado,
-                    'fecha_caducidad' => $item['fecha_caducidad'] ?? null,
+                    'compra_id'              => $compra->id,
+                    'producto_id'            => $producto->id,
+                    'cantidad'               => $cantidad,
+                    'unidad_medida'          => $unidadMedidaSnap,
+                    'costo_unitario'         => $costoUnitario,
+                    'subtotal'               => $subtotal,
+                    'precio_venta_sugerido'  => $precioVentaSugerido,
+                    'precio_venta_aplicado'  => $precioVentaAplicado,
+                    'fecha_caducidad'        => $item['fecha_caducidad'] ?? null,
+                ]);
+
+                InventarioLote::query()->create([
+                    'producto_id'        => $producto->id,
+                    'compra_detalle_id'  => $detalle->id,
+                    'cantidad_inicial'   => $cantidad,
                     'cantidad_disponible' => $cantidad,
+                    'costo_unitario'     => $costoUnitario,
+                    'fecha_vencimiento'  => $item['fecha_caducidad'] ?? null,
+                    'fecha_entrada'      => $validated['fecha_compra'],
                 ]);
 
                 InventarioMovimiento::query()->create([
@@ -168,12 +184,11 @@ class CompraController extends Controller
                 ]);
 
                 $producto->update([
-                    'proveedor_id' => $compra->proveedor_id,
+                    'proveedor_id'   => $compra->proveedor_id,
                     'costo_promedio' => $costoPromedioNuevo,
-                    'stock_actual' => $stockNuevo,
-                    'precio_venta' => $precioVentaAplicado,
-                    'unidad_medida' => $unidadMedida,
-                    'mod_user' => getUserId(),
+                    'stock_actual'   => $stockNuevo,
+                    'precio_venta'   => $precioVentaAplicado,
+                    'mod_user'       => getUserId(),
                 ]);
 
                 $total += $subtotal;

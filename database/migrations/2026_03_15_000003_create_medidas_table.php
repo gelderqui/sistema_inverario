@@ -8,17 +8,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('medidas', function (Blueprint $table): void {
+        Schema::create('unidades_medida', function (Blueprint $table): void {
             $table->id();
-            $table->string('codigo', 30)->unique();
             $table->string('nombre', 80)->unique();
+            $table->string('abreviatura', 10)->unique();
             $table->boolean('activo')->default(true);
             $table->timestamps();
+        });
+
+        // Agregar FK en productos (la columna unidad_medida_id ya fue creada antes)
+        Schema::table('productos', function (Blueprint $table): void {
+            $table->foreign('unidad_medida_id')->references('id')->on('unidades_medida')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('medidas');
+        Schema::table('productos', function (Blueprint $table): void {
+            $table->dropForeign(['unidad_medida_id']);
+        });
+        Schema::dropIfExists('unidades_medida');
     }
 };

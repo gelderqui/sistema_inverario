@@ -19,7 +19,6 @@ return new class extends Migration
             $table->decimal('precio_venta_sugerido', 12, 4)->nullable();
             $table->decimal('precio_venta_aplicado', 12, 4)->nullable();
             $table->date('fecha_caducidad')->nullable();
-            $table->decimal('cantidad_disponible', 12, 4);
             $table->timestamps();
 
             $table->foreign('compra_id')->references('id')->on('compras')->cascadeOnDelete();
