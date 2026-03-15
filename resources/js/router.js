@@ -8,8 +8,12 @@ import CategoriasView from '@/components/CategoriasView.vue';
 import ClientesView from '@/components/ClientesView.vue';
 import ComprasView from '@/components/ComprasView.vue';
 import ConfiguracionesView from '@/components/ConfiguracionesView.vue';
+import DevolucionesView from '@/components/DevolucionesView.vue';
 import DashboardView from '@/components/DashboardView.vue';
 import GastosView from '@/components/GastosView.vue';
+import HistorialVentasView from '@/components/HistorialVentasView.vue';
+import InventarioAlertasView from '@/components/InventarioAlertasView.vue';
+import InventarioAjustesView from '@/components/InventarioAjustesView.vue';
 import InventarioView from '@/components/InventarioView.vue';
 import LoginView from '@/components_public/LoginView.vue';
 import ProveedoresView from '@/components/ProveedoresView.vue';
@@ -153,9 +157,64 @@ const routes = [
         },
     },
     {
+        path: '/ventas/historial',
+        name: 'historial-ventas',
+        component: HistorialVentasView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/ventas/devoluciones',
+        name: 'devoluciones',
+        component: DevolucionesView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
         path: '/inventario',
+        redirect: '/inventario/stock',
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/inventario/stock',
         name: 'inventario',
         component: InventarioView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/inventario/movimientos',
+        name: 'inventario-movimientos',
+        component: InventarioView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/inventario/ajustes',
+        name: 'inventario-ajustes',
+        component: InventarioAjustesView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/inventario/alertas',
+        name: 'inventario-alertas',
+        component: InventarioAlertasView,
+        meta: {
+            requiresAuth: true,
+        },
+    },
+    {
+        path: '/inventario/vencidos',
+        name: 'inventario-vencidos',
+        component: InventarioAlertasView,
         meta: {
             requiresAuth: true,
         },

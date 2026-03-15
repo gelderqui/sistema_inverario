@@ -232,6 +232,7 @@ const openGroups = ref([]);
 // Construye el menú dinámicamente desde los permisos del usuario ordenados por `orden`.
 const menuItems = computed(() => {
     const perms = [...(authStore.user?.permissions ?? [])]
+        .filter((p) => Boolean(p.ruta))
         .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
 
     const groupedModules = [

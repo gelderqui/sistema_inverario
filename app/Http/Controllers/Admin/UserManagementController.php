@@ -89,6 +89,12 @@ class UserManagementController extends Controller
             'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')],
         ]);
 
+        if ($this->isProtectedAdmin($user) && isset($validated['role_id']) && (int) $validated['role_id'] !== (int) $user->role_id) {
+            return response()->json([
+                'message' => 'El usuario admin principal no puede cambiar de rol.',
+            ], 422);
+        }
+
         $payload = [
             'name' => $validated['name'],
             'email' => $validated['email'],

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Inventario;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventarioLote;
 use App\Models\InventarioMovimiento;
 use App\Models\Producto;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -77,6 +79,61 @@ class InventarioController extends Controller
 
         return response()->json([
             'data' => $movimientos,
+        ]);
+    }
+
+    public function alertas(Request $request): JsonResponse
+    {
+        $hoy = Carbon::today()->toDateString();
+
+        $bajoStock = Producto::query()
+            ->whereColumn('stock_actual', '<=', 'stock_minimo')
+            ->orderBy('nombre')
+            ->get([
+                'id',
+                'nombre',
+                'stock_actual',
+                'stock_minimo',
+            ]);
+
+        $porVencer = InventarioLote::query()
+            ->join('productos', 'productos.id', '=', 'inventario_lotes.producto_id')
+            ->where('productos.control_vencimiento', true)
+            ->where('inventario_lotes.cantidad_disponible', '>', 0)
+            ->whereNotNull('inventario_lotes.fecha_vencimiento')
+            ->whereRaw('inventario_lotes.fecha_vencimiento >= ?', [$hoy])
+            ->whereRaw('inventario_lotes.fecha_vencimiento <= DATE_ADD(?, INTERVAL productos.dias_alerta_vencimiento DAY)', [$hoy])
+            ->orderBy('inventario_lotes.fecha_vencimiento')
+            ->get([
+                'inventario_lotes.id as lote_id',
+                'inventario_lotes.producto_id',
+                'productos.nombre as producto_nombre',
+                'inventario_lotes.cantidad_disponible',
+                'inventario_lotes.fecha_vencimiento',
+                'productos.dias_alerta_vencimiento',
+            ]);
+
+        $vencidos = InventarioLote::query()
+            ->join('productos', 'productos.id', '=', 'inventario_lotes.producto_id')
+            ->where('productos.control_vencimiento', true)
+            ->where('inventario_lotes.cantidad_disponible', '>', 0)
+            ->whereNotNull('inventario_lotes.fecha_vencimiento')
+            ->where('inventario_lotes.fecha_vencimiento', '<', $hoy)
+            ->orderBy('inventario_lotes.fecha_vencimiento')
+            ->get([
+                'inventario_lotes.id as lote_id',
+                'inventario_lotes.producto_id',
+                'productos.nombre as producto_nombre',
+                'inventario_lotes.cantidad_disponible',
+                'inventario_lotes.fecha_vencimiento',
+            ]);
+
+        return response()->json([
+            'data' => [
+                'bajo_stock' => $bajoStock,
+                'por_vencer' => $porVencer,
+                'vencidos' => $vencidos,
+            ],
         ]);
     }
 }

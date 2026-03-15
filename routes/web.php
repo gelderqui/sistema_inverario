@@ -15,7 +15,9 @@ use App\Http\Controllers\ConfiguracionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Gastos\GastoController;
 use App\Http\Controllers\Inventario\InventarioController;
+use App\Http\Controllers\Inventario\AjusteInventarioController;
 use App\Http\Controllers\Reportes\ReporteController;
+use App\Http\Controllers\Ventas\DevolucionController;
 use App\Http\Controllers\Ventas\VentaController;
 use Illuminate\Support\Facades\Route;
 
@@ -117,9 +119,16 @@ Route::prefix('api')->group(function (): void {
         });
 
         Route::prefix('ventas')->group(function (): void {
-            Route::get('/get', [VentaController::class, 'index']);
-            Route::get('/get/catalogs', [VentaController::class, 'catalogs']);
-            Route::post('/store', [VentaController::class, 'store']);
+            Route::get('/get', [VentaController::class, 'index'])->middleware('permission:ventas');
+            Route::get('/historial/get', [VentaController::class, 'index'])->middleware('permission:historial_ventas|ventas');
+            Route::get('/get/catalogs', [VentaController::class, 'catalogs'])->middleware('permission:ventas');
+            Route::post('/store', [VentaController::class, 'store'])->middleware('permission:ventas');
+
+            Route::prefix('devoluciones')->group(function (): void {
+                Route::get('/get', [DevolucionController::class, 'index'])->middleware('permission:devoluciones');
+                Route::get('/get/catalogs', [DevolucionController::class, 'catalogs'])->middleware('permission:devoluciones');
+                Route::post('/store', [DevolucionController::class, 'store'])->middleware('permission:devoluciones');
+            });
         });
 
         Route::prefix('gastos')->group(function (): void {
@@ -134,8 +143,15 @@ Route::prefix('api')->group(function (): void {
         });
 
         Route::prefix('inventario')->group(function (): void {
-            Route::get('/existencias/get', [InventarioController::class, 'existencias']);
-            Route::get('/movimientos/get', [InventarioController::class, 'movimientos']);
+            Route::get('/existencias/get', [InventarioController::class, 'existencias'])->middleware('permission:inventario');
+            Route::get('/movimientos/get', [InventarioController::class, 'movimientos'])->middleware('permission:inventario_movimientos|inventario');
+            Route::get('/alertas/get', [InventarioController::class, 'alertas'])->middleware('permission:inventario_alertas|inventario_vencidos|inventario');
+
+            Route::prefix('ajustes')->group(function (): void {
+                Route::get('/get', [AjusteInventarioController::class, 'index'])->middleware('permission:inventario_ajustes');
+                Route::get('/get/catalogs', [AjusteInventarioController::class, 'catalogs'])->middleware('permission:inventario_ajustes');
+                Route::post('/store', [AjusteInventarioController::class, 'store'])->middleware('permission:inventario_ajustes');
+            });
         });
     });
 });

@@ -87,6 +87,12 @@ class RoleManagementController extends Controller
             'permission_ids.*' => ['integer', Rule::exists('permissions', 'id')],
         ]);
 
+        if ($role->code === 'admin' && strtolower((string) $validated['code']) !== 'admin') {
+            return response()->json([
+                'message' => 'El codigo del rol admin no se puede modificar.',
+            ], 422);
+        }
+
         $role->update([
             'name' => $validated['name'],
             'code' => strtolower($validated['code']),

@@ -1,7 +1,7 @@
 <template>
     <div>
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h4 mb-0">Inventario</h2>
+            <h2 class="h4 mb-0">{{ pageTitle }}</h2>
             <div class="inventario-toolbar d-flex gap-2 align-items-center flex-wrap justify-content-end">
                 <input
                     v-model="search"
@@ -20,7 +20,7 @@
 
         <div v-if="loading" class="text-center py-5"><p class="text-body-secondary mb-0">Cargando información...</p></div>
 
-        <div v-else class="card border-0 shadow-sm mb-4">
+        <div v-else-if="showStock" class="card border-0 shadow-sm mb-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="thead-brand">
@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm">
+        <div v-if="showMovimientos" class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Movimientos recientes</h6>
                 <button class="btn btn-outline-brand btn-sm" :disabled="loading" @click="loadMovimientos">Recargar</button>
@@ -104,7 +104,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import axios from '@/bootstrap';
 
@@ -113,6 +114,11 @@ const search = ref('');
 const soloBajoStock = ref(false);
 const existencias = ref([]);
 const movimientos = ref([]);
+const route = useRoute();
+
+const showStock = computed(() => route.path !== '/inventario/movimientos');
+const showMovimientos = computed(() => route.path !== '/inventario/stock');
+const pageTitle = computed(() => (route.path === '/inventario/movimientos' ? 'Inventario - Movimientos' : 'Inventario - Stock'));
 
 onMounted(async () => {
     await Promise.all([loadExistencias(), loadMovimientos()]);

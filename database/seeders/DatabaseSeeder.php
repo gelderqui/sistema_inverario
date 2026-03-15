@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             MedidaSeeder::class,
             TipoGastoSeeder::class,
+            MotivoAjusteSeeder::class,
             ConfiguracionSeeder::class,
             AuthorizationSeeder::class,
             CatalogDefaultsSeeder::class,
