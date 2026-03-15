@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Configuracion;
 use App\Http\Resources\AuthenticatedUserResource;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +31,19 @@ class AuthController extends Controller
             'activo' => true,
         ];
 
-        if (! Auth::attempt($credentials, (bool) ($validated['remember'] ?? false))) {
+        $remember = (bool) ($validated['remember'] ?? false);
+        $guard = Auth::guard('web');
+
+        if ($remember && $guard instanceof SessionGuard) {
+            $rememberDuration = max(
+                1,
+                (int) Configuracion::valor('tiempo_sesion', (int) config('session.lifetime', 120))
+            );
+
+            $guard->setRememberDuration($rememberDuration);
+        }
+
+        if (! Auth::attempt($credentials, $remember)) {
             throw ValidationException::withMessages([
                 'username' => __('auth.failed'),
             ]);

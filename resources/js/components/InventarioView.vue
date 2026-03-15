@@ -2,13 +2,12 @@
     <div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h4 mb-0">Inventario</h2>
-            <div class="d-flex gap-2 align-items-center">
+            <div class="inventario-toolbar d-flex gap-2 align-items-center flex-wrap justify-content-end">
                 <input
                     v-model="search"
                     type="search"
-                    class="form-control"
+                    class="form-control inventario-search"
                     placeholder="Buscar por barra o nombre"
-                    style="min-width: 280px;"
                     @keyup.enter="loadExistencias"
                 >
                 <div class="form-check form-switch mb-0">

@@ -52,6 +52,7 @@
                             <td>
                                 <div class="d-flex gap-1">
                                     <button
+                                        v-if="role.code !== 'admin'"
                                         class="btn btn-sm btn-action-brand"
                                         title="Editar"
                                         :disabled="actionLocked"
@@ -60,10 +61,11 @@
                                         <FontAwesomeIcon icon="fa-solid fa-pencil" class="icon-action-edit" />
                                     </button>
                                     <button
+                                        v-if="role.code !== 'admin'"
                                         class="btn btn-sm btn-action-brand"
-                                        :disabled="actionLocked || role.code === 'admin'"
-                                        :title="role.code === 'admin' ? 'El rol admin no se puede eliminar' : 'Eliminar'"
-                                        @click="role.code !== 'admin' && openDelete(role)"
+                                        :disabled="actionLocked"
+                                        title="Eliminar"
+                                        @click="openDelete(role)"
                                     >
                                         <FontAwesomeIcon icon="fa-solid fa-trash" class="icon-action-delete" />
                                     </button>
@@ -256,7 +258,7 @@ async function loadRoles() {
     loading.value = true;
 
     try {
-        const { data } = await axios.get('/configuracion/roles/get');
+        const { data } = await axios.get('/roles/get');
         roles.value = data.data;
     } finally {
         loading.value = false;
@@ -264,7 +266,7 @@ async function loadRoles() {
 }
 
 async function loadPermissions() {
-    const { data } = await axios.get('/configuracion/permissions/get');
+    const { data } = await axios.get('/permissions/get');
     allPermissions.value = data.data;
 }
 
@@ -300,13 +302,13 @@ async function save() {
 
     try {
         if (editingId.value) {
-            const { data } = await axios.put(`/configuracion/roles/update/${editingId.value}`, form.value);
+            const { data } = await axios.put(`/roles/update/${editingId.value}`, form.value);
             const index = roles.value.findIndex((r) => r.id === editingId.value);
             if (index !== -1) {
                 roles.value[index] = data.data;
             }
         } else {
-            const { data } = await axios.post('/configuracion/roles/store', form.value);
+            const { data } = await axios.post('/roles/store', form.value);
             roles.value.push(data.data);
         }
 
@@ -327,7 +329,7 @@ async function save() {
 async function confirmDelete() {
     deleting.value = true;
     try {
-        await axios.delete(`/configuracion/roles/destroy/${selected.value.id}`);
+        await axios.delete(`/roles/destroy/${selected.value.id}`);
         roles.value = roles.value.filter((r) => r.id !== selected.value.id);
         confirmModalRef.value?.close();
     } catch (error) {

@@ -34,7 +34,8 @@ const routes = [
         },
     },
     {
-        path: '/configuracion/usuarios',
+        path: '/usuarios',
+        alias: ['/configuracion/usuarios'],
         name: 'config-users',
         component: UsersView,
         meta: {
@@ -42,7 +43,8 @@ const routes = [
         },
     },
     {
-        path: '/configuracion/roles',
+        path: '/roles',
+        alias: ['/configuracion/roles'],
         name: 'config-roles',
         component: RolesView,
         meta: {
@@ -50,7 +52,8 @@ const routes = [
         },
     },
     {
-        path: '/configuracion/configuraciones',
+        path: '/configuraciones',
+        alias: ['/configuracion/configuraciones'],
         name: 'config-configuraciones',
         component: ConfiguracionesView,
         meta: {
@@ -66,7 +69,8 @@ const routes = [
         },
     },
     {
-        path: '/cliente',
+        path: '/clientes',
+        alias: ['/cliente'],
         name: 'cliente',
         component: ClientesView,
         meta: {

@@ -16,6 +16,8 @@ class Configuracion extends Model
         'descripcion',
         'value',
         'activo',
+        'last_modified_by_user_id',
+        'last_modified_by_user_name',
     ];
 
     protected function casts(): array

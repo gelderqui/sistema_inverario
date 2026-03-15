@@ -20,7 +20,7 @@ class ConfiguracionSeeder extends Seeder
             ],
             [
                 'codigo' => 'tiempo_sesion',
-                'descripcion' => 'Tiempo de sesion inactiva en minutos.',
+                'descripcion' => 'Tiempo en sesion inactiva cuando se marca "Mantener sesion iniciada". Si no se marca, la sesion se mantiene por 120 minutos.',
                 'value' => '120',
                 'activo' => true,
             ],

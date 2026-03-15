@@ -34,6 +34,9 @@ class ConfiguracionController extends Controller
                 'value',
                 'activo',
                 'created_at',
+                'updated_at',
+                'last_modified_by_user_id',
+                'last_modified_by_user_name',
             ]);
 
         return response()->json([
@@ -46,15 +49,19 @@ class ConfiguracionController extends Controller
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:120', 'alpha_dash', 'unique:configuraciones,codigo'],
             'descripcion' => ['nullable', 'string', 'max:255'],
-            'value' => ['nullable', 'string'],
+            'value' => ['required', 'string'],
             'activo' => ['sometimes', 'boolean'],
         ]);
+
+        $user = $request->user();
 
         $item = Configuracion::query()->create([
             'codigo' => strtolower($validated['codigo']),
             'descripcion' => $validated['descripcion'] ?? null,
-            'value' => $validated['value'] ?? null,
+            'value' => $validated['value'],
             'activo' => (bool) ($validated['activo'] ?? true),
+            'last_modified_by_user_id' => $user?->id,
+            'last_modified_by_user_name' => $user?->name ?? $user?->username,
         ]);
 
         return response()->json([
@@ -66,15 +73,15 @@ class ConfiguracionController extends Controller
     public function update(Request $request, Configuracion $configuracion): JsonResponse
     {
         $validated = $request->validate([
-            'descripcion' => ['nullable', 'string', 'max:255'],
-            'value' => ['nullable', 'string'],
-            'activo' => ['required', 'boolean'],
+            'value' => ['required', 'string'],
         ]);
 
+        $user = $request->user();
+
         $configuracion->update([
-            'descripcion' => $validated['descripcion'] ?? null,
-            'value' => $validated['value'] ?? null,
-            'activo' => (bool) $validated['activo'],
+            'value' => $validated['value'],
+            'last_modified_by_user_id' => $user?->id,
+            'last_modified_by_user_name' => $user?->name ?? $user?->username,
         ]);
 
         return response()->json([

@@ -158,7 +158,6 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
                             <button type="submit" class="btn btn-brand" :disabled="passwordSaving">
-                                <span v-if="passwordSaving" class="spinner-border spinner-border-sm me-2" aria-hidden="true" />
                                 {{ passwordSaving ? 'Guardando...' : 'Actualizar contrasena' }}
                             </button>
                         </div>

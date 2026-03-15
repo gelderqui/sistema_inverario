@@ -7,3 +7,22 @@
     color: #027a48;
     font-weight: 700;
 }
+
+.inventario-toolbar {
+    row-gap: 0.5rem;
+}
+
+.inventario-search {
+    min-width: 280px;
+}
+
+@media (max-width: 768px) {
+    .inventario-toolbar {
+        width: 100%;
+        justify-content: flex-start !important;
+    }
+
+    .inventario-search {
+        min-width: 100%;
+    }
+}

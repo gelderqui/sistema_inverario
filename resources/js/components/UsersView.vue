@@ -83,9 +83,13 @@
                                         v-model="form.username"
                                         type="text"
                                         class="form-control"
-                                        required
+                                        :readonly="isEditing"
+                                        :required="!isEditing"
                                         autocomplete="off"
                                     >
+                                    <div v-if="isEditing" class="form-text">
+                                        El nombre de usuario no se puede editar.
+                                    </div>
                                 </div>
 
                                 <div class="col-12 col-sm-6">
@@ -200,6 +204,7 @@ const emptyForm = () => ({
 
 const form = ref(emptyForm());
 const actionLocked = computed(() => loading.value || saving.value);
+const isEditing = computed(() => editingId.value !== null);
 
 onMounted(async () => {
     bsModal = new Modal(modalRef.value);
@@ -210,7 +215,7 @@ async function loadUsers() {
     loading.value = true;
 
     try {
-        const { data } = await axios.get('/configuracion/usuarios/get');
+        const { data } = await axios.get('/usuarios/get');
         users.value = data.data;
     } finally {
         loading.value = false;
@@ -218,7 +223,7 @@ async function loadUsers() {
 }
 
 async function loadCatalogs() {
-    const { data } = await axios.get('/configuracion/usuarios/get/catalogs');
+    const { data } = await axios.get('/usuarios/get/catalogs');
     catalogs.value = data;
 }
 
@@ -250,13 +255,13 @@ async function save() {
 
     try {
         if (editingId.value) {
-            const { data } = await axios.put(`/configuracion/usuarios/update/${editingId.value}`, form.value);
+            const { data } = await axios.put(`/usuarios/update/${editingId.value}`, form.value);
             const index = users.value.findIndex((u) => u.id === editingId.value);
             if (index !== -1) {
                 users.value[index] = data.data;
             }
         } else {
-            const { data } = await axios.post('/configuracion/usuarios/store', form.value);
+            const { data } = await axios.post('/usuarios/store', form.value);
             users.value.push(data.data);
         }
 

@@ -56,6 +56,7 @@
                                     type="button"
                                     class="btn btn-outline-secondary"
                                     :title="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                                    :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                                     @click="showPassword = !showPassword"
                                 >
                                     <FontAwesomeIcon :icon="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" />
@@ -69,9 +70,8 @@
                         </div>
 
                         <button type="submit" class="btn btn-dark btn-lg w-100 mt-1" :disabled="loading">
-                            <span v-if="loading" class="spinner-border spinner-border-sm me-2" aria-hidden="true" />
-                            <FontAwesomeIcon v-else icon="fa-solid fa-right-to-bracket" class="me-2" />
-                            Ingresar
+                            <FontAwesomeIcon icon="fa-solid fa-right-to-bracket" class="me-2" />
+                            {{ loading ? 'Ingresando...' : 'Ingresar' }}
                         </button>
 
                     </form>
@@ -121,7 +121,11 @@ async function submit() {
         const { data } = await axios.post('/auth/login', form.value);
         authStore.setUser(data.user?.data ?? data.user ?? null);
         authStore.setInitialized(true);
-        await router.push(route.query.redirect ?? { name: 'dashboard' });
+
+        const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null;
+        const safeRedirect = redirect && redirect.startsWith('/') ? redirect : null;
+
+        await router.push(safeRedirect ?? { name: 'dashboard' });
     } catch (error) {
         const serverErrors = error.response?.data?.errors;
 

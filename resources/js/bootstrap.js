@@ -10,6 +10,21 @@ window.axios.defaults.withXSRFToken = true;
 window.axios.defaults.headers.common.Accept = 'application/json';
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+function getCurrentRelativeUrl() {
+	return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function navigateTo(path) {
+	const router = window.__APP_ROUTER__;
+
+	if (router) {
+		router.replace(path);
+		return;
+	}
+
+	window.location.replace(path);
+}
+
 window.axios.interceptors.request.use(
 	(config) => {
 		if (!config?.skipGlobalLoading) {
@@ -39,13 +54,14 @@ window.axios.interceptors.response.use(
 
 		const status = error?.response?.status;
 		const currentPath = window.location.pathname;
+		const currentRelativeUrl = getCurrentRelativeUrl();
 
 		if (status === 401 && currentPath !== '/login') {
-			window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+			navigateTo(`/login?redirect=${encodeURIComponent(currentRelativeUrl)}`);
 		}
 
 		if ((status === 403 || status === 404) && currentPath !== '/login' && currentPath !== '/error') {
-			window.location.href = '/error';
+			navigateTo('/error');
 		}
 
 		return Promise.reject(error);

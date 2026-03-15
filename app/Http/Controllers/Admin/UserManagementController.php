@@ -11,6 +11,11 @@ use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
+    private function isProtectedAdmin(User $user): bool
+    {
+        return strtolower($user->username) === 'admin' || strtolower($user->email) === 'admin@admin.local';
+    }
+
     public function index(): JsonResponse
     {
         $users = User::query()
@@ -64,19 +69,13 @@ class UserManagementController extends Controller
 
     public function update(Request $request, User $user): JsonResponse
     {
-        if (($user->username === 'admin' || $user->email === 'admin@admin.local') && ! $request->boolean('activo')) {
+        if ($this->isProtectedAdmin($user) && ! $request->boolean('activo')) {
             return response()->json([
                 'message' => 'El usuario admin no se puede desactivar.',
             ], 422);
         }
 
         $validated = $request->validate([
-            'username' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('users', 'username')->ignore($user->id),
-            ],
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -91,7 +90,6 @@ class UserManagementController extends Controller
         ]);
 
         $payload = [
-            'username' => $validated['username'],
             'name' => $validated['name'],
             'email' => $validated['email'],
             'telefono' => $validated['telefono'] ?? null,
@@ -109,6 +107,21 @@ class UserManagementController extends Controller
         return response()->json([
             'message' => 'Usuario actualizado correctamente.',
             'data' => $user,
+        ]);
+    }
+
+    public function destroy(User $user): JsonResponse
+    {
+        if ($this->isProtectedAdmin($user)) {
+            return response()->json([
+                'message' => 'El usuario admin no se puede eliminar.',
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'Usuario eliminado correctamente.',
         ]);
     }
 
