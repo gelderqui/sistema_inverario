@@ -15,11 +15,18 @@ class Role extends Model
     protected static function booted(): void
     {
         static::deleting(function (Role $role): void {
+            // Active users must keep a valid role; role deletion is blocked in that case.
             if ($role->users()->exists()) {
                 throw ValidationException::withMessages([
                     'role' => ['No se puede eliminar el rol porque tiene usuarios asignados.'],
                 ]);
             }
+
+            // If only logically deleted users are linked, detach them to satisfy FK restrictOnDelete.
+            User::withTrashed()
+                ->where('role_id', $role->id)
+                ->whereNotNull('deleted_at')
+                ->update(['role_id' => null]);
         });
     }
 

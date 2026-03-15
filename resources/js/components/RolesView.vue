@@ -54,6 +54,15 @@
                                     <button
                                         v-if="role.code !== 'admin'"
                                         class="btn btn-sm btn-action-brand"
+                                        :disabled="actionLocked"
+                                        :title="role.activo ? 'Inactivar' : 'Activar'"
+                                        @click="openToggleStatus(role)"
+                                    >
+                                        <FontAwesomeIcon :icon="role.activo ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off'" class="icon-action-edit" />
+                                    </button>
+                                    <button
+                                        v-if="role.code !== 'admin'"
+                                        class="btn btn-sm btn-action-brand"
                                         title="Editar"
                                         :disabled="actionLocked"
                                         @click="openEdit(role)"
@@ -203,6 +212,17 @@
             :error-message="confirmError"
             @confirm="confirmDelete"
         />
+
+        <ModalConfirm
+            ref="toggleModalRef"
+            :title="toggleTitle"
+            :message="toggleMessage"
+            :hint="toggleHint"
+            :confirm-text="toggleConfirmText"
+            :loading="toggling"
+            :error-message="toggleError"
+            @confirm="confirmToggleStatus"
+        />
     </div>
 </template>
 
@@ -218,12 +238,16 @@ const allPermissions = ref([]);
 const loading = ref(true);
 const saving = ref(false);
 const deleting = ref(false);
+const toggling = ref(false);
 const modalErrors = ref([]);
 const editingId = ref(null);
 const selected = ref(null);
+const selectedForToggle = ref(null);
 const confirmError = ref('');
+const toggleError = ref('');
 const modalRef = ref(null);
 const confirmModalRef = ref(null);
+const toggleModalRef = ref(null);
 
 let bsModal = null;
 
@@ -245,7 +269,7 @@ const permissionsByModule = computed(() =>
         return acc;
     }, {})
 );
-const actionLocked = computed(() => loading.value || saving.value || deleting.value);
+const actionLocked = computed(() => loading.value || saving.value || deleting.value || toggling.value);
 
 onMounted(async () => {
     bsModal = new Modal(modalRef.value);
@@ -253,6 +277,21 @@ onMounted(async () => {
 });
 
 const confirmMessage = computed(() => `¿Eliminar el rol <strong>${selected.value?.name ?? ''}</strong>?`);
+const toggleTitle = computed(() => selectedForToggle.value?.activo ? 'Inactivar rol' : 'Activar rol');
+const toggleConfirmText = computed(() => selectedForToggle.value?.activo ? 'Inactivar' : 'Activar');
+const toggleMessage = computed(() => {
+    if (!selectedForToggle.value) return '';
+    const accion = selectedForToggle.value.activo ? 'inactivar' : 'activar';
+    return `¿Deseas ${accion} el rol <strong>${selectedForToggle.value.name}</strong>?`;
+});
+const toggleHint = computed(() => {
+    if (!selectedForToggle.value) return '';
+    if (selectedForToggle.value.activo) {
+        return 'Si el rol queda inactivo, los usuarios con ese rol no podran iniciar sesion y no se podra crear ni asignar nuevos usuarios con ese rol.';
+    }
+
+    return 'Si activas el rol, podra volver a usarse para iniciar sesion y para crear o asignar usuarios.';
+});
 
 async function loadRoles() {
     loading.value = true;
@@ -339,6 +378,45 @@ async function confirmDelete() {
             : (error.response?.data?.message ?? 'No se pudo eliminar el rol.');
     } finally {
         deleting.value = false;
+    }
+}
+
+function openToggleStatus(role) {
+    if (!role || role.code === 'admin') return;
+
+    selectedForToggle.value = role;
+    toggleError.value = '';
+    toggleModalRef.value?.open();
+}
+
+async function confirmToggleStatus() {
+    const role = selectedForToggle.value;
+    if (!role || role.code === 'admin') return;
+
+    const payload = {
+        name: role.name,
+        code: role.code,
+        description: role.description ?? '',
+        activo: !role.activo,
+        permission_ids: role.permissions?.map((p) => p.id) ?? [],
+    };
+
+    toggling.value = true;
+    toggleError.value = '';
+    try {
+        const { data } = await axios.put(`/roles/update/${role.id}`, payload);
+        const index = roles.value.findIndex((r) => r.id === role.id);
+        if (index !== -1) {
+            roles.value[index] = data.data;
+        }
+        toggleModalRef.value?.close();
+    } catch (error) {
+        const serverErrors = error.response?.data?.errors;
+        toggleError.value = serverErrors
+            ? Object.values(serverErrors).flat().join(' ')
+            : (error.response?.data?.message ?? 'No se pudo actualizar el estado del rol.');
+    } finally {
+        toggling.value = false;
     }
 }
 </script>

@@ -54,6 +54,19 @@ class UserManagementController extends Controller
             'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')],
         ]);
 
+        if (! empty($validated['role_id'])) {
+            $roleActivo = Role::query()
+                ->whereKey($validated['role_id'])
+                ->where('activo', true)
+                ->exists();
+
+            if (! $roleActivo) {
+                return response()->json([
+                    'message' => 'No se puede crear un usuario con un rol inactivo.',
+                ], 422);
+            }
+        }
+
         $user = User::query()->create([
             'username' => $validated['username'],
             'name' => $validated['name'],
@@ -99,6 +112,23 @@ class UserManagementController extends Controller
             'activo' => ['required', 'boolean'],
             'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')],
         ]);
+
+        $incomingRoleId = $validated['role_id'] ?? null;
+        $currentRoleId = $user->role_id;
+        $isRoleChanged = (int) ($incomingRoleId ?? 0) !== (int) ($currentRoleId ?? 0);
+
+        if (! empty($incomingRoleId) && $isRoleChanged) {
+            $roleActivo = Role::query()
+                ->whereKey($incomingRoleId)
+                ->where('activo', true)
+                ->exists();
+
+            if (! $roleActivo) {
+                return response()->json([
+                    'message' => 'No se puede asignar un rol inactivo al usuario.',
+                ], 422);
+            }
+        }
 
         if ($this->isProtectedAdmin($user) && isset($validated['role_id']) && (int) $validated['role_id'] !== (int) $user->role_id) {
             return response()->json([
@@ -163,7 +193,7 @@ class UserManagementController extends Controller
         $user->delete();
 
         return response()->json([
-            'message' => 'Usuario eliminado correctamente.',
+            'message' => 'Usuario eliminado logicamente. Quedo inactivo y no podra activarse nuevamente.',
         ]);
     }
 

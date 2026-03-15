@@ -4,18 +4,20 @@ Documento de contexto rapido para cualquier agente IA que entre a este repositor
 
 ## 1) Objetivo del proyecto
 
-SPA para inventario/POS sobre Laravel + Vue.
+SPA de inventario + POS sobre Laravel + Vue, con control de caja, devoluciones, ajustes y reportes.
 
 Estado funcional actual:
 
 - Autenticacion SPA con Sanctum (cookie + sesion)
-- RBAC personalizado por rol/permisos (tabla propia)
-- Modulos activos:
+- RBAC propio por rol/permisos
+- Modulos activos y orden de menu:
   - Dashboard
-  - Configuracion: Usuarios, Roles, Configuraciones
-  - Catalogos: Categorias, Productos, Proveedores, Clientes
-  - Compras
-  - Inventario
+  - Reportes
+  - Caja
+  - Ventas
+  - Operaciones (Compras, Inventario, Gastos)
+  - Catalogo
+  - Configuracion
 
 ## 2) Stack y herramientas
 
@@ -25,7 +27,7 @@ Backend:
 - PHP >= 8.2
 - Sanctum
 - MariaDB (Sail)
-- Redis, Mailpit (Sail)
+- barryvdh/laravel-dompdf
 
 Frontend:
 
@@ -35,7 +37,6 @@ Frontend:
 - Axios
 - Bootstrap 5
 - Font Awesome
-- CoreUI CSS
 - Vite
 
 Infra local:
@@ -49,116 +50,118 @@ Infra local:
 ### Backend
 
 - Rutas API + SPA entrypoint en `routes/web.php`
-- Controladores principales:
+- Controladores clave:
   - `app/Http/Controllers/AuthController.php`
   - `app/Http/Controllers/ConfiguracionController.php`
-  - `app/Http/Controllers/Admin/*`
-  - `app/Http/Controllers/Catalogos/*`
-  - `app/Http/Controllers/Compras/*`
+  - `app/Http/Controllers/Admin/UserManagementController.php`
+  - `app/Http/Controllers/Admin/RoleManagementController.php`
+  - `app/Http/Controllers/Caja/CajaController.php`
+  - `app/Http/Controllers/Ventas/VentaController.php`
+  - `app/Http/Controllers/Ventas/DevolucionController.php`
+  - `app/Http/Controllers/Compras/CompraController.php`
   - `app/Http/Controllers/Inventario/*`
-- Recurso de usuario autenticado para frontend:
-  - `app/Http/Resources/AuthenticatedUserResource.php`
-- Middleware de autorizacion:
+  - `app/Http/Controllers/Reportes/ReporteController.php`
+- Middleware de permisos:
   - `app/Http/Middleware/CheckPermission.php`
 
 ### Frontend
 
-- Entrada Vue: `resources/js/app.js`
-- Componente raiz (shell): `resources/js/AppLayout.vue`
-  - contiene sidebar, header, modal de cambio de contrasena, y `<router-view />`
+- Shell principal: `resources/js/AppLayout.vue`
 - Router: `resources/js/router.js`
-  - hace bootstrap de sesion llamando `/auth/me`
-  - controla solo `requiresAuth` y `guestOnly`
-  - la autorizacion fina se deja al backend (middleware)
-- Store Pinia (minimalista): `resources/js/stores/auth.js`
-  - estado compartido: `user`, `initialized`
-  - acciones: `setUser`, `clearUser`, `setInitialized`
-- Componentes protegidos: `resources/js/components/*`
-- Componentes publicos: `resources/js/components_public/*`
-- La carpeta `resources/js/utils` fue eliminada por no uso actual.
+- Store auth: `resources/js/stores/auth.js`
+- Vistas principales:
+  - `resources/js/components/CajaView.vue`
+  - `resources/js/components/VentasView.vue`
+  - `resources/js/components/HistorialVentasView.vue`
+  - `resources/js/components/DevolucionesView.vue`
+  - `resources/js/components/ComprasView.vue`
+  - `resources/js/components/InventarioAlertasView.vue`
+  - `resources/js/components/ReportesView.vue`
+  - `resources/js/components/UsersView.vue`
+  - `resources/js/components/ConfiguracionesView.vue`
+  - `resources/js/components/TicketReceiptModal.vue`
 
-### Estilos CSS
+## 4) Reglas funcionales vigentes
 
-Estrategia vigente (confirmada):
+### Caja
 
-- No se estan usando bloques `<style>` dentro de archivos `.vue`.
-- El estilo esta centralizado en `resources/css`:
-  - `app.css`: base global e imports de CSS modulares
-  - `components.css`: estilos compartidos/reutilizables (botones, modales, thead, sidebar)
-  - `catalogos.css`: clases de catalogos
-  - `compras.css`: clases de compras
-  - `inventario.css`: clases de inventario
+- Flujo operativo: apertura, movimientos, arqueo, cierre
+- Umbral de alerta por faltante configurado por `caja_alerta_faltante_monto` (en quetzales)
 
-Convencion recomendada:
+### Ventas, devoluciones y anulaciones
 
-- Si una regla aplica en varias pantallas o es UI compartida, va a `components.css`.
-- Si una regla aplica a un dominio (catalogos/compras/inventario), va a su archivo de dominio.
-- Evitar CSS embebido en componentes salvo casos excepcionales.
+- No se eliminan ventas/compras/devoluciones fisicamente para anular.
+- Se usa `estado` (`activo` o `anulada`) y se registra compensacion en inventario/caja.
 
-## 4) Flujo auth/permisos/menu
+Regla de fecha:
 
-1. Al cargar app, router ejecuta guard global.
-2. Si no esta inicializado, hace `GET /auth/me`.
-3. El backend responde usuario + rol + permisos (resource autenticado).
-4. El store guarda `user` y `initialized`.
-5. `AppLayout.vue` arma el menu desde `authStore.user.permissions`.
-6. Si el usuario navega a endpoint sin permiso, backend responde 403 y axios interceptor redirige a `/error`.
+- Venta del mismo dia: se maneja con anulacion de venta.
+- Venta de dias anteriores: se maneja con devolucion.
 
-Notas:
+Compensaciones:
 
-- El menu se pinta por permisos efectivos del usuario.
-- Actualmente existe una definicion de grupos en frontend (`catalogos`, `configuracion`) en `AppLayout.vue`.
-- Se inicio trabajo para mover metadata de grupo a BD en permisos (`module_label`, `module_icono`) via migracion/seeder.
+- Anulacion de venta:
+  - Inventario: movimiento `anulacion_venta` (+stock)
+  - Caja (si fue efectivo): movimiento `anulacion_venta` (egreso)
+- Anulacion de compra:
+  - Inventario: movimiento `anulacion_compra` (-stock), con validacion de lotes no consumidos
+- Anulacion de devolucion:
+  - Inventario: movimiento `anulacion_devolucion` (-stock)
 
-## 5) Rutas funcionales (resumen)
+### Recibos PDF
 
-Auth:
+- Venta y devolucion generan ticket PDF (tamano pequeno) con opcion de imprimir.
+- Disponible al guardar y desde historial.
 
-- `POST /auth/login`
-- `GET /auth/me`
-- `POST /auth/logout`
-- `PUT /auth/password`
+### Usuarios y seguridad
 
-Configuraciones publicas:
+- Usuario admin principal no se puede eliminar.
+- Eliminacion de usuarios es logica (soft delete) y se muestran como `Eliminado`.
+- Usuarios eliminados/inactivos no pueden iniciar sesion.
+- En edicion de usuario, `username` se muestra como lectura en UI.
+- Cambio de contrasena de un usuario desde admin cierra solo las sesiones de ese usuario (no de otros).
 
-- `GET /configuraciones/get/login` (guest)
-- `GET /configuraciones/get/publicas` (auth)
+### Roles
 
-Modulo configuracion (auth + permission + ajax):
+- No se puede eliminar un rol con usuarios asociados.
+- Restriccion aplicada en negocio y en FK (`users.role_id` con `restrictOnDelete`).
+- Orden esperado en listado: Administrador, Operador, Cajero.
 
-- `configuracion/usuarios/*`
-- `configuracion/roles/*`
-- `configuracion/permissions/get`
-- `configuracion/configuraciones/*`
+## 5) Configuraciones (tipos y reglas)
 
-Catalogos:
+Codigos base:
 
-- `catalogos/categorias/*`
-- `catalogos/productos/*`
-- `catalogos/proveedores/*`
-- `catalogos/clientes/*`
+- `nombre_empresa`: texto
+- `tiempo_sesion`: entero (dias)
+- `caja_alerta_faltante_monto`: entero (Q)
+- `devolucion_limite_dias_cajero`: entero
 
-Operativo:
+Reglas:
 
-- `compras/*`
-- `inventario/*`
+- Solo `nombre_empresa` acepta texto.
+- Las demas configuraciones aceptan entero.
+- Enteros: minimo `0`.
+- Excepcion: `devolucion_limite_dias_cajero` minimo `2`.
 
-## 6) Cambios recientes importantes
+Defaults actuales (seeder):
 
-- Reestructura frontend:
-  - `AppLayout.vue` movido a `resources/js/AppLayout.vue`
-  - vistas movidas a `resources/js/components` y `resources/js/components_public`
-- Eliminadas carpetas/archivos obsoletos:
-  - `resources/js/views`
-  - `resources/js/layouts`
-  - `resources/js/utils`
-- Store auth simplificado (Pinia solo estado compartido)
-- Login movido a `LoginView.vue`; logout/password a `AppLayout.vue`
-- Router simplificado sin chequeo de permisos por path en frontend
-- Configuraciones:
-  - removido `locale` del seeder y del endpoint publico
-  - defaults actuales: `nombre_empresa=weltixh`, `tiempo_sesion=120`
-- Carpeta de traducciones movida a `resources/lang`
+- `nombre_empresa = weltixh`
+- `tiempo_sesion = 1` (dia)
+- `caja_alerta_faltante_monto = 50`
+- `devolucion_limite_dias_cajero = 15`
+
+## 6) Roles y alcance
+
+- `admin`: todos los permisos
+- `operador`: todo excepto modulo configuracion
+- `cajero`: todo excepto configuracion y reportes
+
+Usuarios seed de prueba:
+
+- `admin@admin.local`
+- `operador@admin.local`
+- `cajero@admin.local`
+- Password base en seed: `password`
 
 ## 7) Comandos recomendados
 
@@ -173,16 +176,21 @@ Levantar entorno:
 
 ```bash
 ./vendor/bin/sail up -d
-./vendor/bin/sail artisan migrate --seed
 ```
 
-Aplicar solo configuraciones:
+Recrear BD completa:
 
 ```bash
-./vendor/bin/sail artisan db:seed --class=ConfiguracionSeeder
+./vendor/bin/sail artisan migrate:fresh --seed --force
 ```
 
-Build:
+Seed puntual de configuraciones:
+
+```bash
+./vendor/bin/sail artisan db:seed --class=ConfiguracionSeeder --force
+```
+
+Build frontend:
 
 ```bash
 ./vendor/bin/sail npm run build
@@ -194,10 +202,8 @@ Tests:
 ./vendor/bin/sail artisan test
 ```
 
-## 8) Riesgos comunes
+## 8) Notas operativas
 
-- Cambiar rutas backend sin ajustar router/frontend
-- Cambiar permisos/seeders sin refrescar datos (`migrate --seed` o seeder puntual)
-- Confiar solo en frontend para autorizacion (la verdad esta en backend)
-- Mezclar estilos por componente en vez de mantener CSS centralizado
-- Archivos con permisos root por uso de sudo en WSL
+- No hay triggers activos/referenciados para reglas de negocio.
+- La autorizacion final siempre se valida en backend.
+- Si se cambian permisos/seeders, volver a ejecutar seeders.

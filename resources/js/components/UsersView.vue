@@ -45,7 +45,15 @@
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-action-brand" :disabled="actionLocked || user.deleted_at" @click="openEdit(user)">
+                                <button
+                                    class="btn btn-sm btn-action-brand"
+                                    :disabled="actionLocked || user.deleted_at || esAdminProtegido(user)"
+                                    :title="user.activo ? 'Desactivar' : 'Activar'"
+                                    @click="openToggleUserStatus(user)"
+                                >
+                                    <FontAwesomeIcon :icon="user.activo ? 'fa-solid fa-toggle-on' : 'fa-solid fa-toggle-off'" class="icon-action-edit" />
+                                </button>
+                                <button class="btn btn-sm btn-action-brand ms-2" :disabled="actionLocked || user.deleted_at" @click="openEdit(user)">
                                     <FontAwesomeIcon icon="fa-solid fa-pencil" class="icon-action-edit" />
                                 </button>
                                 <button
@@ -181,6 +189,37 @@
                 </div>
             </div>
         </div>
+
+        <ModalConfirm
+            ref="confirmModalRef"
+            title="Eliminar usuario"
+            :message="confirmMessage"
+            confirm-text="Eliminar"
+            :loading="deleting"
+            :error-message="confirmError"
+            @confirm="confirmDelete"
+        />
+
+        <ModalConfirm
+            ref="deactivateModalRef"
+            title="Desactivar usuario"
+            :message="deactivateMessage"
+            hint="Mientras el usuario este inactivo no podra iniciar sesion."
+            confirm-text="Desactivar"
+            :loading="saving"
+            @confirm="confirmDeactivateAndSave"
+        />
+
+        <ModalConfirm
+            ref="toggleUserModalRef"
+            :title="toggleUserTitle"
+            :message="toggleUserMessage"
+            :hint="toggleUserHint"
+            :confirm-text="toggleUserConfirmText"
+            :loading="saving"
+            :error-message="toggleUserError"
+            @confirm="confirmToggleUserStatus"
+        />
     </div>
 </template>
 
@@ -189,14 +228,23 @@ import { Modal } from 'bootstrap';
 import { computed, onMounted, ref } from 'vue';
 
 import axios from '@/bootstrap';
+import ModalConfirm from '@/components/components_ui/ModalConfirm.vue';
 
 const users = ref([]);
 const catalogs = ref({ roles: [] });
 const loading = ref(true);
 const saving = ref(false);
+const deleting = ref(false);
 const modalErrors = ref([]);
 const editingId = ref(null);
 const modalRef = ref(null);
+const confirmModalRef = ref(null);
+const deactivateModalRef = ref(null);
+const toggleUserModalRef = ref(null);
+const selectedUser = ref(null);
+const selectedUserForToggle = ref(null);
+const confirmError = ref('');
+const toggleUserError = ref('');
 
 let bsModal = null;
 
@@ -211,8 +259,31 @@ const emptyForm = () => ({
 });
 
 const form = ref(emptyForm());
-const actionLocked = computed(() => loading.value || saving.value);
+const actionLocked = computed(() => loading.value || saving.value || deleting.value);
 const isEditing = computed(() => editingId.value !== null);
+const confirmMessage = computed(() => {
+    const username = selectedUser.value?.username ?? '';
+    return `El usuario <strong>${username}</strong> sera eliminado de forma logica. Quedara con estado <strong>Eliminado</strong>, no podra iniciar sesion y no podra activarse nuevamente.`;
+});
+const deactivateMessage = computed(() => {
+    const username = form.value?.username ?? '';
+    return `¿Deseas desactivar al usuario <strong>${username}</strong>? Mientras este inactivo no podra iniciar sesion.`;
+});
+const toggleUserTitle = computed(() => selectedUserForToggle.value?.activo ? 'Desactivar usuario' : 'Activar usuario');
+const toggleUserConfirmText = computed(() => selectedUserForToggle.value?.activo ? 'Desactivar' : 'Activar');
+const toggleUserMessage = computed(() => {
+    if (!selectedUserForToggle.value) return '';
+    const accion = selectedUserForToggle.value.activo ? 'desactivar' : 'activar';
+    return `¿Deseas ${accion} al usuario <strong>${selectedUserForToggle.value.username}</strong>?`;
+});
+const toggleUserHint = computed(() => {
+    if (!selectedUserForToggle.value) return '';
+    if (selectedUserForToggle.value.activo) {
+        return 'Si desactivas este usuario, no podra iniciar sesion hasta volver a activarlo.';
+    }
+
+    return 'Si activas este usuario, podra iniciar sesion nuevamente.';
+});
 
 onMounted(async () => {
     bsModal = new Modal(modalRef.value);
@@ -258,6 +329,15 @@ function openEdit(user) {
 }
 
 async function save() {
+    if (shouldConfirmDeactivation()) {
+        deactivateModalRef.value?.open();
+        return;
+    }
+
+    await persistUser();
+}
+
+async function persistUser() {
     saving.value = true;
     modalErrors.value = [];
 
@@ -287,26 +367,91 @@ async function save() {
     }
 }
 
-async function removeUser(user) {
+async function confirmDeactivateAndSave() {
+    await persistUser();
+    deactivateModalRef.value?.close();
+}
+
+function openToggleUserStatus(user) {
     if (!user?.id || user.deleted_at || esAdminProtegido(user)) return;
 
-    const ok = window.confirm(`Se eliminara logicamente el usuario ${user.username}. Deseas continuar?`);
-    if (!ok) return;
+    selectedUserForToggle.value = user;
+    toggleUserError.value = '';
+    toggleUserModalRef.value?.open();
+}
+
+async function confirmToggleUserStatus() {
+    if (!selectedUserForToggle.value?.id) return;
 
     saving.value = true;
-    modalErrors.value = [];
+    toggleUserError.value = '';
+
+    const target = selectedUserForToggle.value;
+
     try {
-        await axios.delete(`/usuarios/destroy/${user.id}`);
-        await loadUsers();
+        const payload = {
+            name: target.name,
+            email: target.email,
+            telefono: target.telefono ?? '',
+            password: '',
+            activo: !target.activo,
+            role_id: target.role?.id ?? null,
+        };
+
+        const { data } = await axios.put(`/usuarios/update/${target.id}`, payload);
+        const index = users.value.findIndex((u) => u.id === target.id);
+        if (index !== -1) {
+            users.value[index] = data.data;
+        }
+
+        toggleUserModalRef.value?.close();
     } catch (error) {
         const serverErrors = error.response?.data?.errors;
         if (serverErrors && typeof serverErrors === 'object') {
-            modalErrors.value = Object.values(serverErrors).flat();
+            toggleUserError.value = Object.values(serverErrors).flat().join(' ');
         } else {
-            modalErrors.value = [error.response?.data?.message ?? 'No se pudo eliminar el usuario.'];
+            toggleUserError.value = error.response?.data?.message ?? 'No se pudo actualizar el estado del usuario.';
         }
     } finally {
         saving.value = false;
+    }
+}
+
+function shouldConfirmDeactivation() {
+    if (!editingId.value || form.value.activo) return false;
+
+    const currentUser = users.value.find((u) => u.id === editingId.value);
+    if (!currentUser || currentUser.deleted_at) return false;
+
+    return Boolean(currentUser.activo);
+}
+
+function removeUser(user) {
+    if (!user?.id || user.deleted_at || esAdminProtegido(user)) return;
+
+    selectedUser.value = user;
+    confirmError.value = '';
+    confirmModalRef.value?.open();
+}
+
+async function confirmDelete() {
+    if (!selectedUser.value?.id) return;
+
+    deleting.value = true;
+    confirmError.value = '';
+    try {
+        await axios.delete(`/usuarios/destroy/${selectedUser.value.id}`);
+        await loadUsers();
+        confirmModalRef.value?.close();
+    } catch (error) {
+        const serverErrors = error.response?.data?.errors;
+        if (serverErrors && typeof serverErrors === 'object') {
+            confirmError.value = Object.values(serverErrors).flat().join(' ');
+        } else {
+            confirmError.value = error.response?.data?.message ?? 'No se pudo eliminar el usuario.';
+        }
+    } finally {
+        deleting.value = false;
     }
 }
 
